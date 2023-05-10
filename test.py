@@ -72,6 +72,7 @@ class App:
         self.canvas.bind('<Motion>', self._is_cursor_inside)
         self.canvas.place(x=0, y=0)
 
+
         self.autoclicker = AutoClicker()
 
         self.button = tk.Button(height=2, width=7, command=self.toggle_autoclicker)

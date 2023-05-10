@@ -49,6 +49,7 @@ def clicker(button=0, delay=0, frequency=1):
         print(4242)
         click(button=button, delay=delay)
         time.sleep(interval)
+        
 
 
 click_bool = True
