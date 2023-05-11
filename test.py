@@ -5,15 +5,6 @@ import threading
 import keyboard
 
 
-class POINT(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-
-
-class INPUT(ctypes.Structure):
-    _fields_ = [("type", ctypes.c_ulong),
-                ("union", ctypes.POINTER(ctypes.c_ulonglong))]
-
-
 MOUSE_EVENT_MOVE = 0x0001
 MOUSE_EVENT_LEFTDOWN = 0x0002
 MOUSE_EVENT_LEFTUP = 0x0004
@@ -30,23 +21,43 @@ MOUSE_BUTTONS = {0: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP),
                  2: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP)}
 
 
-def click(button=0, delay=0):
+def click(button=0, delay=0.001):
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][0], 0, 0, 0, 0)  # down
     time.sleep(delay)
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][1], 0, 0, 0, 0)  # up
 
 
+def calculate_click_rate(delay, frequency):
+    interval = 1 / frequency
+    click_time = round(delay + interval, 3)
+    click_rate = round(1 / click_time, 3)
+    return click_time, click_rate
+
+
+def interval_func(freq, delay):
+    """Formula for calculating interval in autoclicker function"""
+    return 1 / freq - delay
+
+
 class AutoClicker(threading.Thread):
-    def __init__(self, button=0, delay=0.1, frequence=10):
+    def __init__(self, button=0, delay=0.001, frequence=10):
         super().__init__()
         self.button = button
         self.delay = delay
+        self.frequence = frequence
+        self.interval = interval_func(self.frequence, self.delay)
+
+        if self.interval < 0:
+            print('You need to either reduce the frequency or delay, interval will default = 0')
+            self.interval = 0
+
         self.running = False
 
     def run(self):
         self.running = True
         while self.running:
             click(self.button, self.delay)
+            time.sleep(self.interval)
 
     def stop(self):
         self.running = False
@@ -54,6 +65,16 @@ class AutoClicker(threading.Thread):
     def start(self):
         if not self.running:
             super().start()
+
+    def update_self(self, button=0, delay=0.001, frequence=10):
+        self.button = button
+        self.delay = delay
+        self.frequence = frequence
+        self.interval = interval_func(self.frequence, self.delay)
+
+        if self.interval < 0:
+            print('You need to either reduce the frequency or delay, interval will default = 0')
+            self.interval = 0
 
 
 class App:
@@ -67,18 +88,13 @@ class App:
         self.window.title('AutoClicker')
         self.window.iconbitmap(default='transparent.ico')
 
-        self.canvas = tk.Canvas(self.window, width=self.x_size, height=self.y_size)
-        self.canvas.pack()
-        self.canvas.bind('<Motion>', self._is_cursor_inside)
-        self.canvas.place(x=0, y=0)
-
-
         self.autoclicker = AutoClicker()
 
-        self.button = tk.Button(height=2, width=7, command=self.toggle_autoclicker)
-        self.button.pack()
-
-        self.hot = keyboard.add_hotkey('a', self.toggle_autoclicker)
+        self.hotkey_button = tk.Button(width=8, height=2, command=self.get_key, text='Press key')
+        self.hotkey_button.grid()
+        self.label = tk.Label(self.window, text='')
+        self.label.grid()
+        # self.hotkey = keyboard.add_hotkey('a', self.toggle_autoclicker)
 
         self.window.mainloop()
 
@@ -90,18 +106,14 @@ class App:
             self.autoclicker.start()
             self.button.config(text='Stop')
 
-    def _is_cursor_inside(self, event):
-        x = self.window.winfo_pointerx() - self.window.winfo_rootx()
-        y = self.window.winfo_pointery() - self.window.winfo_rooty()
+    def get_key(self):
+        self.hotkey_button.config(text='Waiting for input...', state='disabled')
+        self.window.bind('<Key>', self.show_key)
 
-        if 0 <= x <= self.window.winfo_width() and 0 <= y <= self.window.winfo_height():
-            print('in')
-        else:
-            print('not in')
-
-
+    def show_key(self, event):
+        self.label.config(text='Current Hotkey: ' + event.keysym)
+        self.hotkey_button.config(text='Press key', state='normal')
+        self.window.unbind('<Key>')
 
 
 app = App()
-
-
