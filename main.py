@@ -1,16 +1,8 @@
-import ctypes
-import time
 import tkinter as tk
+import time
+import ctypes
 import threading
-
-
-class POINT(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-
-
-class INPUT(ctypes.Structure):
-    _fields_ = [("type", ctypes.c_ulong),
-                ("union", ctypes.POINTER(ctypes.c_ulonglong))]
+import keyboard
 
 
 MOUSE_EVENT_MOVE = 0x0001
@@ -29,30 +21,62 @@ MOUSE_BUTTONS = {0: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP),
                  2: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP)}
 
 
-def click(button=0, delay=0):
+def click(button=0, delay=0.001):
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][0], 0, 0, 0, 0)  # down
     time.sleep(delay)
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][1], 0, 0, 0, 0)  # up
 
 
-# click(0)
-
-def clicker(button=0, delay=0, frequency=1):
-    global click_bool
-
-    print(42)
-    if frequency > 0:
-        interval = 1 / frequency
-    else:
-        interval = 0
-    while click_bool:
-        print(4242)
-        click(button=button, delay=delay)
-        time.sleep(interval)
+def calculate_click_rate(delay, frequency):
+    interval = 1 / frequency
+    click_time = round(delay + interval, 3)
+    click_rate = round(1 / click_time, 3)
+    return click_time, click_rate
 
 
+def interval_func(freq, delay):
+    """Formula for calculating interval in autoclicker function"""
+    return 1 / freq - delay
 
-click_bool = True
+
+class AutoClicker(threading.Thread):
+    def __init__(self, button=0, delay=0.001, frequence=10):
+        super().__init__()
+        self.button = button
+        self.delay = delay
+        self.frequence = frequence
+        self.interval = interval_func(self.frequence, self.delay)
+
+        if self.interval < 0:
+            print('You need to either reduce the frequency or delay, interval will default = 0')
+            self.interval = 0
+
+        self.running = False
+
+    def run(self):
+        self.running = True
+        while self.running:
+            click(self.button, self.delay)
+            time.sleep(self.interval)
+
+    def stop(self):
+        self.running = False
+
+    def start(self):
+        if not self.running:
+            super().start()
+
+    def update_self(self, button=0, delay=0.001, frequence=10):
+        self.button = button
+        self.delay = delay
+        self.frequence = frequence
+        self.interval = interval_func(self.frequence, self.delay)
+
+        if self.interval < 0:
+            print('You need to either reduce the frequency or delay, interval will default = 0')
+            self.interval = 0
+
+
 class App:
     def __init__(self):
         self.window = tk.Tk()
@@ -64,17 +88,32 @@ class App:
         self.window.title('AutoClicker')
         self.window.iconbitmap(default='transparent.ico')
 
-        self.button = tk.Button(height=2, width=7, command=...)
-        self.button.pack()
+        self.autoclicker = AutoClicker()
+
+        self.hotkey_button = tk.Button(width=8, height=2, command=self.get_key, text='Press key')
+        self.hotkey_button.grid()
+        self.label = tk.Label(self.window, text='')
+        self.label.grid()
+        # self.hotkey = keyboard.add_hotkey('a', self.toggle_autoclicker)
 
         self.window.mainloop()
 
+    def toggle_autoclicker(self):
+        if self.autoclicker.running:
+            self.autoclicker.stop()
+            self.button.config(text='Start')
+        else:
+            self.autoclicker.start()
+            self.button.config(text='Stop')
 
-th = threading.Thread(target=clicker)
-th.start()
+    def get_key(self):
+        self.hotkey_button.config(text='Waiting for input...', state='disabled')
+        self.window.bind('<Key>', self.show_key)
 
-while True:
-    time.sleep(0.1)
-    print('yes')
+    def show_key(self, event):
+        self.label.config(text='Current Hotkey: ' + event.keysym)
+        self.hotkey_button.config(text='Press key', state='normal')
+        self.window.unbind('<Key>')
 
-# app = App()
+
+app = App()
