@@ -1,37 +1,41 @@
 import configparser
 
-def write_config(hotkey, delay, frequency):
+config_name = 'config.ini'
+
+def write_config(hotkey, delay, frequency, button):
     config = configparser.ConfigParser()
     config['SETTINGS'] = {
-        'hotkey': hotkey,
+        'hotkey_key': hotkey,
         'delay': str(delay),
-        'frequency': str(frequency)
+        'frequency': str(frequency),
+        'button': str(button)
     }
 
-    with open('config.ini', 'w') as config_file:
+    with open(config_name, 'w') as config_file:
         config.write(config_file)
 
 
 def load_config():
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read(config_name)
 
     if 'SETTINGS' in config:
         settings = config['SETTINGS']
-        hotkey = settings.get('hotkey', '')
+        hotkey_key = settings.get('hotkey_key', 'F6')
         delay = settings.getfloat('delay', 0.1)
-        frequency = settings.getint('frequency', 5)
+        frequency = settings.getint('frequency', 10)
+        button = settings.getint('button', 0)
+        return hotkey_key, delay, frequency, button
 
-        return hotkey, delay, frequency
-
-    return '', 0.1, 5
+    return 'F6', 0.1, 10, 0
 
 
-hotkey = 'F1'
-delay = 0.1
-frequency = 5
+hotkey = 'F6'
+delay = 0.01
+frequency = 10
+button = 0
 
-write_config(hotkey, delay, frequency)
+write_config(hotkey, delay, frequency, button)
 
 # hotkey, delay, frequency = load_config()
 #

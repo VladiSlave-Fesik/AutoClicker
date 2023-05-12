@@ -118,7 +118,7 @@ class App:
             self.autoclicker.stop()
         else:
             if not self.autoclicker.running:
-                self.autoclicker = AutoClicker()
+                self.autoclicker = AutoClicker(button=self.button, delay=self.delay, frequence=self.frequency)
                 self.autoclicker.start()
 
     def get_key(self):
@@ -126,10 +126,12 @@ class App:
         self.window.bind('<Key>', self.show_key)
 
     def show_key(self, event):
-        self.label.config(text='Current Hotkey: ' + event.keysym)
+        pressed_key = event.keysym
+        self.label.config(text='Current Hotkey: ' + pressed_key)
         self.hotkey_button.config(text='Press key', state='normal')
         self.window.unbind('<Key>')
 
+        self.hotkey_key = pressed_key
         self.hotkey = keyboard.add_hotkey(event.keysym, self.toggle_autoclicker)
         self.write_config(hotkey=self.hotkey_key, delay=self.delay, frequency=self.frequency, button=self.button)
 
