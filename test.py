@@ -1,42 +1,36 @@
-import configparser
+import tkinter as tk
 
-config_name = 'config.ini'
+click_actions = {
+    0: "Left click",
+    1: "Right click",
+    2: "Middle click"
+}
 
-def write_config(hotkey, delay, frequency, button):
-    config = configparser.ConfigParser()
-    config['SETTINGS'] = {
-        'hotkey_key': hotkey,
-        'delay': str(delay),
-        'frequency': str(frequency),
-        'button': str(button)
-    }
+class App:
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.title('Button Update')
 
-    with open(config_name, 'w') as config_file:
-        config.write(config_file)
+        self.button = 0
+
+        self.current_button_label = tk.Label(self.window, text=f'Current click: {click_actions[self.button]}')
+        self.current_button_label.grid()
+
+        self.click_button_input = tk.Entry()
+        self.click_button_input.insert(0, str(self.button))
+        self.click_button_input.grid()
+
+        self.click_button_input.bind("<KeyRelease>", self.update_button_label)
+
+        self.window.mainloop()
+
+    def update_button_label(self, event):
+        try:
+            button = int(self.click_button_input.get())
+            self.button = button
+            self.current_button_label.config(text=f'Current click: {click_actions.get(button, "")}')
+        except ValueError:
+            pass
 
 
-def load_config():
-    config = configparser.ConfigParser()
-    config.read(config_name)
-
-    if 'SETTINGS' in config:
-        settings = config['SETTINGS']
-        hotkey_key = settings.get('hotkey_key', 'F6')
-        delay = settings.getfloat('delay', 0.1)
-        frequency = settings.getint('frequency', 10)
-        button = settings.getint('button', 0)
-        return hotkey_key, delay, frequency, button
-
-    return 'F6', 0.1, 10, 0
-
-
-hotkey = 'F6'
-delay = 0.01
-frequency = 10
-button = 0
-
-write_config(hotkey, delay, frequency, button)
-
-# hotkey, delay, frequency = load_config()
-#
-# print(hotkey,delay,frequency)
+app = App()
