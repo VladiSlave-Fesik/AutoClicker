@@ -152,13 +152,7 @@ class App:
             self.autoclicker.stop()
         else:
             if not self.autoclicker.running:
-                print(dedent(f'''
-                Run with:
-                        {self.hotkey_key=}
-                        {self.delay=}
-                        {self.frequency=}
-                        {self.button=}'''.strip()))
-                print()
+                print(f'Run with:\n{self.values_str(4)}')
                 self.autoclicker = AutoClicker(button=self.button, delay=float(self.delay_input.get()),
                                                frequence=self.frequency)
                 self.autoclicker.start()
