@@ -29,12 +29,17 @@
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;E:/Python_Projects/autoclicker&quot;
+    &quot;last_opened_file_path&quot;: &quot;E:/Python_Projects/autoclicker&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;
   }
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="E:\Python_Projects\autoclicker" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\Python_Projects\autoclicker\data\images" />
+      <recent name="E:\Python_Projects\autoclicker\data\configs" />
     </key>
   </component>
   <component name="RunManager" selected="Python.main">

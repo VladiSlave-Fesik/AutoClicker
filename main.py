@@ -42,29 +42,18 @@ def click(button=0, delay=0.001):
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][1], 0, 0, 0, 0)  # up
 
 
-def calculate_click_rate(delay, frequency):
-    interval = 1 / frequency
-    click_time = round(delay + interval, 3)
-    click_rate = round(1 / click_time, 3)
-    return click_time, click_rate
-
-
-def interval_func(freq, delay):
-    """Formula for calculating interval in autoclicker function"""
-    return 1 / freq - delay
-
-
 class AutoClicker(threading.Thread):
-    def __init__(self, button=0, delay=0.001, frequence=10):
+    def __init__(self, button=0, delay=0.001, interval=0):
         super().__init__()
         self.button = button
         self.delay = delay
-        self.frequence = frequence
-        self.interval = interval_func(self.frequence, self.delay)
+        self.interval = interval
 
-        if self.interval <= 0:
-            print('You need to either reduce the frequency or delay, interval will default = 0')
+        if self.interval < 0:
             self.interval = 0
+
+        if self.delay < 0:
+            self.delay = 0
 
         self.running = False
 
@@ -81,22 +70,66 @@ class AutoClicker(threading.Thread):
         if not self.running:
             super().start()
 
-    def update_self(self, button=0, delay=0.001, frequence=10):
+    def update_self(self, button=0, delay=0.001, interval=0):
         self.button = button
         self.delay = delay
-        self.frequence = frequence
-        self.interval = interval_func(self.frequence, self.delay)
+        self.interval = interval
 
-        if self.interval < 0:
-            print('You need to either reduce the frequency or delay, interval will default = 0')
+        if self.interval <= 0:
             self.interval = 0
+
+        if self.delay <= 0:
+            self.delay = 0
+
+
+class TimeInput(tk.Frame):
+    def __init__(self, master=None, time_=None, **kwargs):
+        super().__init__(master, **kwargs)
+        self.hour = tk.StringVar()
+        self.minute = tk.StringVar()
+        self.second = tk.StringVar()
+
+        if not time_:
+            self.hour.set("00")
+            self.minute.set("00")
+            self.second.set("00")
+        else:
+            self.hour.set(time_[0])
+            self.minute.set(time_[1])
+            self.second.set(time_[2])
+
+        self.hour_entry = tk.Entry(self, textvariable=self.hour, width=2, justify='center')
+        self.minute_entry = tk.Entry(self, textvariable=self.minute, width=2, justify='center')
+        self.second_entry = tk.Entry(self, textvariable=self.second, width=2, justify='center')
+
+        self.hour_entry.pack(side=tk.LEFT)
+        tk.Label(self, text=':').pack(side=tk.LEFT)
+        self.minute_entry.pack(side=tk.LEFT)
+        tk.Label(self, text=':').pack(side=tk.LEFT)
+        self.second_entry.pack(side=tk.LEFT)
+
+    def get_time(self):
+        hour = self.hour.get()
+        minute = self.minute.get()
+        second = self.second.get()
+
+        try:
+            hour = int(hour)
+            minute = int(minute)
+            second = int(second)
+            if 0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59:
+                return f"{hour:02d}:{minute:02d}:{second:02d}"
+        except ValueError:
+            pass
+
+        return None
 
 
 class App:
     standard_autoclicker_settings = {
         'hotkey_key': 'F6',
         'delay': 0.001,
-        'frequency': 10,
+        'interval': 0,
         'button': 0,
     }
     standard_autoclicker_settings_values = standard_autoclicker_settings.values()
@@ -109,16 +142,20 @@ class App:
         self.y_size = 300
         self.window.geometry(f'{self.x_size}x{self.y_size}')
         self.window.title('AutoClicker')
-        self.window.iconbitmap(default='transparent.ico')
+
+        self.icon_main_name = 'data/images/transparent.ico'
+        self.icon_save_button = 'data/images/save.png'
+
+        self.window.iconbitmap(default=self.icon_main_name)
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
 
         # getting config
-        self.config_name = 'config.ini'
-        self.hotkey_key, self.delay, self.frequency, self.button = self.load_config()
+        self.config_name = 'data/configs/config.ini'
+        self.hotkey_key, self.delay, self.interval, self.button = self.load_config()
 
         print(f'''From [{self.config_name}] such values were loaded:\n{self.values_str(4)}\n''')
 
-        self.autoclicker = AutoClicker(button=self.button, delay=self.delay, frequence=self.frequency)
+        self.autoclicker = AutoClicker(button=self.button, delay=self.delay, interval=self.interval)
 
         self.hotkey_button = tk.Button(width=8, height=2, command=self.get_key, text='Press key')
         self.hotkey_button.grid()
@@ -131,9 +168,8 @@ class App:
         self.delay_input.insert(0, str(self.delay))
         self.delay_input.grid()
 
-        self.frequency_input = tk.Entry()
-        self.frequency_input.insert(0, str(self.frequency))
-        self.frequency_input.grid()
+        self.time_input = TimeInput(self.window, time_=self.format_time(self.interval).split(':'))
+        self.time_input.grid()
 
         self.current_button_label = tk.Label(self.window, text=f'Current click: {click_actions.get(self.button, "")}')
         self.current_button_label.grid()
@@ -145,16 +181,20 @@ class App:
         self.click_button_input.bind("<KeyRelease>", self.update_current_button_label)
         self.click_button_input.grid()
 
+        self.button_save_config = tk.Button(text='Save to config')
+        self.button_save_config.grid()
+
         self.window.mainloop()
 
     def toggle_autoclicker(self):
+        self.set_new_values()
         if self.autoclicker.running:
             self.autoclicker.stop()
         else:
             if not self.autoclicker.running:
                 print(f'Run with:\n{self.values_str(4)}')
                 self.autoclicker = AutoClicker(button=self.button, delay=float(self.delay_input.get()),
-                                               frequence=self.frequency)
+                                               interval=self.interval)
                 self.autoclicker.start()
 
     def get_key(self):
@@ -174,12 +214,12 @@ class App:
         else:
             self.hotkey_button.config(text='Press key', state='normal')
 
-    def write_config(self, hotkey, delay, frequency, button):
+    def write_config(self, hotkey, delay, interval, button):
         config = configparser.ConfigParser()
         config['SETTINGS'] = {
             'hotkey_key': hotkey,
             'delay': str(delay),
-            'frequency': str(frequency),
+            'interval': str(interval),
             'button': str(button)
         }
 
@@ -193,10 +233,10 @@ class App:
         if 'SETTINGS' in config:
             settings = config['SETTINGS']
             hotkey_key = settings.get('hotkey_key', 'F6')
-            delay = settings.getfloat('delay', 0.1)
-            frequency = settings.getint('frequency', 10)
+            delay = settings.getfloat('delay', 0.001)
+            interval = settings.getint('interval', 0)
             button = settings.getint('button', 0)
-            return hotkey_key, delay, frequency, button
+            return hotkey_key, delay, interval, button
 
         return App.standard_autoclicker_settings_values
 
@@ -212,19 +252,39 @@ class App:
         # self.hotkey_key =
         # self.button =
         self.delay = float(self.delay_input.get())
-        self.frequency = int(self.frequency_input.get())
+        self.interval = self.get_time()
 
     def values_str(self, space_nums=0):
-        _ = f'{self.hotkey_key=}\n{self.delay=}\n{self.frequency=}\n{self.button=}'
-        _ = indent(_, ' '*space_nums)
+        _ = f'{self.hotkey_key=}\n{self.delay=}\n{self.interval=}\n{self.button=}'
+        _ = indent(_, ' ' * space_nums)
         return _
 
     def on_closing(self):
+        self.window.destroy()
+
+    def get_time(self):
+        time_ = self.time_input.get_time()
+        return self.time_to_seconds(time_)
+
+    @staticmethod
+    def time_to_seconds(time_: str):
+        h, m, s = map(int, time_.split(':'))
+        seconds = (h * 3600) + (m * 60) + s
+        return seconds
+
+    @staticmethod
+    def format_time(seconds: int):
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        seconds = seconds % 60
+
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    def save_config_button(self):
         self.set_new_values()
         print('The following values are saved in the config:')
-        print(self.values_str(4)+'\n')
-        self.write_config(hotkey=self.hotkey_key, delay=self.delay, frequency=self.frequency, button=self.button)
-        # self.window.destroy()
+        print(self.values_str(4) + '\n')
+        self.write_config(hotkey=self.hotkey_key, delay=self.delay, interval=self.interval, button=self.button)
 
 
 if __name__ == '__main__':
