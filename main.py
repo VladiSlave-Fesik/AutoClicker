@@ -187,7 +187,7 @@ class App:
         self.window.mainloop()
 
     def toggle_autoclicker(self):
-        self.set_new_values()
+        self.update_values()
         if self.autoclicker.running:
             self.autoclicker.stop()
         else:
@@ -248,7 +248,7 @@ class App:
         except ValueError:
             pass
 
-    def set_new_values(self):
+    def update_values(self):
         # self.hotkey_key =
         # self.button =
         self.delay = float(self.delay_input.get())
@@ -281,7 +281,7 @@ class App:
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     def save_config_button(self):
-        self.set_new_values()
+        self.update_values()
         print('The following values are saved in the config:')
         print(self.values_str(4) + '\n')
         self.write_config(hotkey=self.hotkey_key, delay=self.delay, interval=self.interval, button=self.button)
