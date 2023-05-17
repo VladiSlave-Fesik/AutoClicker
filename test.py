@@ -1,19 +1,5 @@
-import tkinter as tk
+from PIL import Image
 
-def save_button_click():
-    # Обработчик нажатия кнопки сохранения
-    print("Button clicked")
+i = Image.open('data/images/test_2.png')
 
-# Создание окна
-window = tk.Tk()
-
-# Создание значка сохранения
-save_icon = tk.PhotoImage(file="data/images/key_1.png")
-
-# Создание кнопки с сохранением
-save_button = tk.Button(window, image=save_icon, command=save_button_click, bd=0, highlightthickness=0)
-save_button.pack()
-
-# Запуск главного цикла окна
-window.mainloop()
-
+i.save('data/images/autoclicker.ico', 'ICO')
