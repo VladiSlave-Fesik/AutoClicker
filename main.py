@@ -5,6 +5,7 @@ import threading
 import keyboard
 import configparser
 from textwrap import dedent, indent
+from PIL import Image, ImageTk
 
 MOUSE_EVENT_MOVE = 0x0001
 MOUSE_EVENT_LEFTDOWN = 0x0002
@@ -143,10 +144,18 @@ class App:
         self.window.geometry(f'{self.x_size}x{self.y_size}')
         self.window.title('AutoClicker')
 
-        self.icon_main_name = 'data/images/transparent.ico'
+        # load images
+        self.icon_name = 'data/images/transparent.ico'
         self.icon_save_button = 'data/images/save.png'
 
-        self.window.iconbitmap(default=self.icon_main_name)
+        self.icon_save_button_img = Image.open(self.icon_save_button).resize((50, 50))
+        self.icon_save_button_img = ImageTk.PhotoImage(self.icon_save_button_img)
+
+        self.icon_key_button = 'data/images/key_0.png'
+        self.icon_key_button_img = Image.open(self.icon_key_button).resize((50, 50))
+        self.icon_key_button_img = ImageTk.PhotoImage(self.icon_key_button_img)
+
+        self.window.iconbitmap(default=self.icon_name)
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
 
         # getting config
@@ -157,7 +166,7 @@ class App:
 
         self.autoclicker = AutoClicker(button=self.button, delay=self.delay, interval=self.interval)
 
-        self.hotkey_button = tk.Button(width=8, height=2, command=self.get_key, text='Press key')
+        self.hotkey_button = tk.Button(command=self.get_key, image=self.icon_key_button_img, bd=0, highlightthickness=0)
         self.hotkey_button.grid()
 
         self.hotkey = keyboard.add_hotkey(self.hotkey_key, self.toggle_autoclicker)
@@ -181,7 +190,7 @@ class App:
         self.click_button_input.bind("<KeyRelease>", self.update_current_button_label)
         self.click_button_input.grid()
 
-        self.button_save_config = tk.Button(text='Save to config')
+        self.button_save_config = tk.Button(command=self.save_config_button, image=self.icon_save_button_img, bd=0, highlightthickness=0)
         self.button_save_config.grid()
 
         self.window.mainloop()
@@ -190,6 +199,7 @@ class App:
         self.update_values()
         if self.autoclicker.running:
             self.autoclicker.stop()
+            print('Stop')
         else:
             if not self.autoclicker.running:
                 print(f'Run with:\n{self.values_str(4)}')
