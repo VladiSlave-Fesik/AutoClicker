@@ -146,7 +146,7 @@ class App:
         self.window.title('AutoClicker')
 
         # load images
-        self.icon_name = 'data/images/transparent.ico'
+        self.icon_name = 'data/images/autoclicker.ico'
         self.icon_save_button = 'data/images/save.png'
 
         self.icon_save_button_img = Image.open(self.icon_save_button).resize((50, 50))
