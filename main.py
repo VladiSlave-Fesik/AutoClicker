@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 import time
 import ctypes
 import threading
@@ -157,6 +158,7 @@ class App:
 
         self.window.iconbitmap(default=self.icon_name)
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
+        self.window.bind("<Button-1>", self.handle_click)
 
         # getting config
         self.config_name = 'data/configs/config.ini'
@@ -180,15 +182,9 @@ class App:
         self.time_input = TimeInput(self.window, time_=self.format_time(self.interval).split(':'))
         self.time_input.grid()
 
-        self.current_button_label = tk.Label(self.window, text=f'Current click: {click_actions.get(self.button, "")}')
-        self.current_button_label.grid()
-
-        self.click_button_input = tk.Entry()
-        self.click_button_input.insert(0, str(self.button))
-        self.click_button_input.grid()
-
-        self.click_button_input.bind("<KeyRelease>", self.update_current_button_label)
-        self.click_button_input.grid()
+        self.click_selection = ttk.Combobox(values=list(actions_click.keys()), state='readonly')
+        self.click_selection.set(click_actions[self.button])
+        self.click_selection.grid()
 
         self.button_save_config = tk.Button(command=self.save_config_button, image=self.icon_save_button_img, bd=0, highlightthickness=0)
         self.button_save_config.grid()
@@ -250,17 +246,9 @@ class App:
 
         return App.standard_autoclicker_settings_values
 
-    def update_current_button_label(self, event):
-        try:
-            button = int(self.click_button_input.get())
-            self.button = button
-            self.current_button_label.config(text=f'Current click: {click_actions.get(button, "")}')
-        except ValueError:
-            pass
-
     def update_values(self):
         # self.hotkey_key =
-        # self.button =
+        self.button = actions_click[self.click_selection.get()]
         self.delay = float(self.delay_input.get())
         self.interval = self.get_time()
 
@@ -295,6 +283,10 @@ class App:
         print('The following values are saved in the config:')
         print(self.values_str(4) + '\n')
         self.write_config(hotkey=self.hotkey_key, delay=self.delay, interval=self.interval, button=self.button)
+
+    def handle_click(self, event):
+        if event.widget == self.window:
+            self.window.focus_set()
 
 
 if __name__ == '__main__':
