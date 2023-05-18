@@ -210,7 +210,7 @@ class App:
         else:
             if not self.autoclicker.running:
                 print(f'Run autoclicker with:\n{self.values_str(4)}')
-                self.autoclicker = AutoClicker(button=self.button, delay=float(self.delay_input.get()),
+                self.autoclicker = AutoClicker(button=self.button, delay=self.delay,
                                                interval=self.interval)
                 self.autoclicker.start()
 
