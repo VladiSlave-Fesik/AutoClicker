@@ -100,9 +100,12 @@ class TimeInput(tk.Frame):
             self.minute.set(time_[1])
             self.second.set(time_[2])
 
-        self.hour_entry = tk.Entry(self, textvariable=self.hour, width=2, justify='center')
-        self.minute_entry = tk.Entry(self, textvariable=self.minute, width=2, justify='center')
-        self.second_entry = tk.Entry(self, textvariable=self.second, width=2, justify='center')
+        self.hour_entry = tk.Entry(self, textvariable=self.hour, width=2, justify='center', bd=0,
+                                   highlightthickness=0)
+        self.minute_entry = tk.Entry(self, textvariable=self.minute, width=2, justify='center', bd=0,
+                                     highlightthickness=0)
+        self.second_entry = tk.Entry(self, textvariable=self.second, width=2, justify='center', bd=0,
+                                     highlightthickness=0)
 
         self.hour_entry.pack(side=tk.LEFT)
         tk.Label(self, text=':').pack(side=tk.LEFT)
@@ -164,8 +167,6 @@ class App:
         self.config_name = 'data/configs/config.ini'
         self.hotkey_key, self.delay, self.interval, self.button = self.load_config()
 
-        print(f'''From [{self.config_name}] such values were loaded:\n{self.values_str(4)}\n''')
-
         self.autoclicker = AutoClicker(button=self.button, delay=self.delay, interval=self.interval)
 
         self.hotkey_button = tk.Button(command=self.get_key, image=self.icon_key_button_img, bd=0, highlightthickness=0)
@@ -186,7 +187,8 @@ class App:
         self.click_selection.set(click_actions[self.button])
         self.click_selection.grid()
 
-        self.button_save_config = tk.Button(command=self.save_config_button, image=self.icon_save_button_img, bd=0, highlightthickness=0)
+        self.button_save_config = tk.Button(command=self.save_config_button, image=self.icon_save_button_img, bd=0,
+                                            highlightthickness=0)
         self.button_save_config.grid()
 
         self.window.mainloop()
@@ -232,6 +234,12 @@ class App:
         with open(self.config_name, 'w') as config_file:
             config.write(config_file)
 
+        print(f'''The following values are saved in the config [{self.config_name}]:\n{self.values_str(space_nums=4,
+                                                                                       hotkey_key=hotkey,
+                                                                                       delay=delay,
+                                                                                       interval=interval,
+                                                                                       button=button)}\n''')
+
     def load_config(self):
         config = configparser.ConfigParser()
         config.read(self.config_name)
@@ -242,6 +250,11 @@ class App:
             delay = settings.getfloat('delay', 0.001)
             interval = settings.getint('interval', 0)
             button = settings.getint('button', 0)
+            print(f'''From [{self.config_name}] such values were loaded:\n{self.values_str(space_nums=4,
+                                                                                           hotkey_key=hotkey_key,
+                                                                                           delay=delay,
+                                                                                           interval=interval,
+                                                                                           button=button)}\n''')
             return hotkey_key, delay, interval, button
 
         return App.standard_autoclicker_settings_values
@@ -252,8 +265,13 @@ class App:
         self.delay = float(self.delay_input.get())
         self.interval = self.get_time()
 
-    def values_str(self, space_nums=0):
-        _ = f'{self.hotkey_key=}\n{self.delay=}\n{self.interval=}\n{self.button=}'
+    def values_str(self, space_nums=0, hotkey_key=None, delay=None, interval=None, button=None):
+        hotkey_key = self.hotkey_key if hotkey_key is None else hotkey_key
+        delay = self.delay if delay is None else delay
+        interval = self.interval if interval is None else interval
+        button = self.button if button is None else button
+
+        _ = f'{hotkey_key=}\n{delay=}\n{interval=}\n{button=}'
         _ = indent(_, ' ' * space_nums)
         return _
 
@@ -280,8 +298,6 @@ class App:
 
     def save_config_button(self):
         self.update_values()
-        print('The following values are saved in the config:')
-        print(self.values_str(4) + '\n')
         self.write_config(hotkey=self.hotkey_key, delay=self.delay, interval=self.interval, button=self.button)
 
     def handle_click(self, event):
