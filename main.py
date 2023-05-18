@@ -215,7 +215,8 @@ class App:
                 self.autoclicker.start()
 
     def get_key(self):
-        self.hotkey_button.config(text='Waiting for input...', state='disabled')
+        self.hotkey_button.config(state='disabled')
+        self.current_hotkey_label.config(text='Waiting for input...\n (Escape to cancel)')
         self.window.bind('<Key>', self.show_key)
 
     def show_key(self, event):
@@ -230,6 +231,7 @@ class App:
             self.hotkey = keyboard.add_hotkey(event.keysym, self.toggle_autoclicker)
         else:
             self.hotkey_button.config(text='Press key', state='normal')
+            self.current_hotkey_label.config(text='Current Hotkey: ' + self.hotkey_key)
 
     def write_config(self, hotkey, delay, interval, button):
         config = configparser.ConfigParser()
