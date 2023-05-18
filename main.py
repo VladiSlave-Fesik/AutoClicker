@@ -206,10 +206,10 @@ class App:
         self.update_values()
         if self.autoclicker.running:
             self.autoclicker.stop()
-            print('\nStop\n')
+            print('\nStop autoclicker\n')
         else:
             if not self.autoclicker.running:
-                print(f'Run with:\n{self.values_str(4)}')
+                print(f'Run autoclicker with:\n{self.values_str(4)}')
                 self.autoclicker = AutoClicker(button=self.button, delay=float(self.delay_input.get()),
                                                interval=self.interval)
                 self.autoclicker.start()
