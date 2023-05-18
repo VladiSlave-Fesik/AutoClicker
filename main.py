@@ -90,15 +90,18 @@ class TimeInput(tk.Frame):
         self.hour = tk.StringVar()
         self.minute = tk.StringVar()
         self.second = tk.StringVar()
+        self.millisecond = tk.StringVar()
 
         if not time_:
             self.hour.set("00")
             self.minute.set("00")
             self.second.set("00")
+            self.millisecond.set("000")
         else:
             self.hour.set(time_[0])
             self.minute.set(time_[1])
             self.second.set(time_[2])
+            self.millisecond.set(time_[3])
 
         self.hour_entry = tk.Entry(self, textvariable=self.hour, width=2, justify='center', bd=0,
                                    highlightthickness=0)
@@ -106,24 +109,30 @@ class TimeInput(tk.Frame):
                                      highlightthickness=0)
         self.second_entry = tk.Entry(self, textvariable=self.second, width=2, justify='center', bd=0,
                                      highlightthickness=0)
+        self.millisecond_entry = tk.Entry(self, textvariable=self.millisecond, width=3, justify='center', bd=0,
+                                          highlightthickness=0)
 
         self.hour_entry.pack(side=tk.LEFT)
         tk.Label(self, text=':').pack(side=tk.LEFT)
         self.minute_entry.pack(side=tk.LEFT)
         tk.Label(self, text=':').pack(side=tk.LEFT)
         self.second_entry.pack(side=tk.LEFT)
+        tk.Label(self, text=':').pack(side=tk.LEFT)
+        self.millisecond_entry.pack(side=tk.LEFT)
 
     def get_time(self):
         hour = self.hour.get()
         minute = self.minute.get()
         second = self.second.get()
+        millisecond = self.millisecond.get()
 
         try:
             hour = int(hour)
             minute = int(minute)
             second = int(second)
-            if 0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59:
-                return f"{hour:02d}:{minute:02d}:{second:02d}"
+            millisecond = int(millisecond)
+            if 0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59 and 0 <= millisecond <= 999:
+                return f"{hour:02d}:{minute:02d}:{second:02d}:{millisecond:03d}"
         except ValueError:
             pass
 
@@ -197,7 +206,7 @@ class App:
         self.update_values()
         if self.autoclicker.running:
             self.autoclicker.stop()
-            print('Stop')
+            print('\nStop\n')
         else:
             if not self.autoclicker.running:
                 print(f'Run with:\n{self.values_str(4)}')
@@ -248,7 +257,7 @@ class App:
             settings = config['SETTINGS']
             hotkey_key = settings.get('hotkey_key', 'F6')
             delay = settings.getfloat('delay', 0.001)
-            interval = settings.getint('interval', 0)
+            interval = settings.getfloat('interval', 0)
             button = settings.getint('button', 0)
             print(f'''From [{self.config_name}] such values were loaded:\n{self.values_str(space_nums=4,
                                                                                            hotkey_key=hotkey_key,
@@ -284,17 +293,17 @@ class App:
 
     @staticmethod
     def time_to_seconds(time_: str):
-        h, m, s = map(int, time_.split(':'))
-        seconds = (h * 3600) + (m * 60) + s
+        h, m, s, ms = map(int, time_.split(':'))
+        seconds = (h * 3600) + (m * 60) + s + (ms / 1000)
         return seconds
 
     @staticmethod
     def format_time(seconds: int):
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        seconds = seconds % 60
-
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        seconds = int(seconds % 60)
+        milliseconds = int((seconds - int(seconds)) * 1000)
+        return f"{hours}:{minutes}:{seconds}:{milliseconds}"
 
     def save_config_button(self):
         self.update_values()
