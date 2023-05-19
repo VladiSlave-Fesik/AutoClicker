@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 import time
 import ctypes
 import threading
@@ -7,6 +7,7 @@ import keyboard
 import configparser
 from textwrap import dedent, indent
 from PIL import Image, ImageTk
+import os
 
 MOUSE_EVENT_MOVE = 0x0001
 MOUSE_EVENT_LEFTDOWN = 0x0002
@@ -109,7 +110,7 @@ class TimeInput(tk.Frame):
                                      highlightthickness=0)
         self.second_entry = tk.Entry(self, textvariable=self.second, width=2, justify='center', bd=0,
                                      highlightthickness=0)
-        self.millisecond_entry = tk.Entry(self, textvariable=self.millisecond, width=3, justify='center', bd=0,
+        self.millisecond_entry = tk.Entry(self, textvariable=self.millisecond, width=5, justify='center', bd=0,
                                           highlightthickness=0)
 
         self.hour_entry.pack(side=tk.LEFT)
@@ -138,6 +139,12 @@ class TimeInput(tk.Frame):
 
         return None
 
+    def update_time(self, time_):
+        self.hour.set(time_[0])
+        self.minute.set(time_[1])
+        self.second.set(time_[2])
+        self.millisecond.set(time_[3])
+
 
 class App:
     standard_autoclicker_settings = {
@@ -157,23 +164,33 @@ class App:
         self.window.geometry(f'{self.x_size}x{self.y_size}')
         self.window.title('AutoClicker')
 
+        # folders
+        self.folder_data = 'data'
+        self.folder_configs = os.path.join(self.folder_data, 'configs')
+        self.folder_images = os.path.join(self.folder_data, 'images')
+
         # load images
-        self.icon_name = 'data/images/autoclicker.ico'
-        self.icon_save_button = 'data/images/save.png'
+        self.icon_name = os.path.join(self.folder_images, 'autoclicker.ico')
+        self.icon_key_button = os.path.join(self.folder_images, 'key_0.png')
+        self.icon_save_button = os.path.join(self.folder_images, 'save.png')
+        self.icon_config = os.path.join(self.folder_images, 'config.png')
 
-        self.icon_save_button_img = Image.open(self.icon_save_button).resize((50, 50))
-        self.icon_save_button_img = ImageTk.PhotoImage(self.icon_save_button_img)
-
-        self.icon_key_button = 'data/images/key_0.png'
         self.icon_key_button_img = Image.open(self.icon_key_button).resize((50, 50))
         self.icon_key_button_img = ImageTk.PhotoImage(self.icon_key_button_img)
+        self.icon_save_button_img = Image.open(self.icon_save_button).resize((50, 50))
+        self.icon_save_button_img = ImageTk.PhotoImage(self.icon_save_button_img)
+        self.icon_config_img = Image.open(self.icon_config).resize((50, 50))
+        self.icon_config_img = ImageTk.PhotoImage(self.icon_config_img)
 
         self.window.iconbitmap(default=self.icon_name)
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
+        self.window.resizable(width=False, height=False)
         self.window.bind("<Button-1>", self.handle_click)
 
         # getting config
-        self.config_name = 'data/configs/config.ini'
+        self.standard_config_name = os.path.join(self.folder_configs, 'config.ini')
+        self.config_name = self.standard_config_name
+
         self.hotkey_key, self.delay, self.interval, self.button = self.load_config()
 
         self.autoclicker = AutoClicker(button=self.button, delay=self.delay, interval=self.interval)
@@ -199,6 +216,9 @@ class App:
         self.button_save_config = tk.Button(command=self.save_config_button, image=self.icon_save_button_img, bd=0,
                                             highlightthickness=0)
         self.button_save_config.grid()
+
+        self.config_select_button = tk.Button(command=self.open_file_dialog,image=self.icon_config_img,bd=0, highlightthickness=0)
+        self.config_select_button.grid()
 
         self.window.mainloop()
 
@@ -268,6 +288,7 @@ class App:
                                                                                            button=button)}\n''')
             return hotkey_key, delay, interval, button
 
+        print('Standard values are loaded')
         return App.standard_autoclicker_settings_values
 
     def update_values(self):
@@ -303,8 +324,9 @@ class App:
     def format_time(seconds: int):
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
-        seconds = int(seconds % 60)
+        seconds = seconds % 60
         milliseconds = int((seconds - int(seconds)) * 1000)
+        seconds = int(seconds)
         return f"{hours}:{minutes}:{seconds}:{milliseconds}"
 
     def save_config_button(self):
@@ -314,6 +336,26 @@ class App:
     def handle_click(self, event):
         if event.widget == self.window:
             self.window.focus_set()
+
+    def open_file_dialog(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        file_path, = filedialog.askopenfilenames(initialdir=self.folder_configs)
+        if file_path != '':
+            keyboard.remove_hotkey(self.hotkey_key)
+
+            self.config_name = file_path
+            self.hotkey_key, self.delay, self.interval, self.button = self.load_config()
+
+            self.autoclicker = AutoClicker(button=self.button, delay=self.delay, interval=self.interval)
+            self.current_hotkey_label.config(text=f'Current Hotkey: {self.hotkey_key}')
+            self.delay_input.delete(0, 'end')
+            self.delay_input.insert(0, str(self.delay))
+            self.time_input.update_time(self.format_time(self.interval).split(':'))
+            self.click_selection.set(click_actions[self.button])
+
+            self.hotkey = keyboard.add_hotkey(self.hotkey_key, self.toggle_autoclicker)
 
 
 if __name__ == '__main__':
