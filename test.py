@@ -29,10 +29,4 @@ def calculate_practical_cps(delay, interval, duration):
 
 # cps = calculate_practical_cps(0.01, 0.01, 1)
 # print(f"Количество кликов в секунду: {cps:.2f}")
-click_actions = {
-    1: "Left click",
-    2: "Right click",
-    3: "Middle click",
-    0: '0'
-}
 

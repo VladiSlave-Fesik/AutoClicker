@@ -42,6 +42,8 @@ def click(button=0, delay=0.001):
 
 def calculate_theoretical_cps(delay, interval):
     click_time = delay + interval
+    if click_time == 0:
+        return 'Infinity'
     clicks_per_second = 1 / click_time
     return clicks_per_second
 
@@ -235,7 +237,17 @@ class App:
         self.config_menu.add_command(label='Save config', command=self.save_config)
         self.config_menu.add_command(label='Save config as', command=self.save_config_as)
 
+        self.calculate_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.calculate_menu.add_command(label='calculate_theoretical_cps',
+                                        command=lambda: print(calculate_theoretical_cps(delay=self.delay,
+                                                                                        interval=self.interval)))
+        self.calculate_menu.add_command(label='calculate_practical_cps',
+                                        command=lambda: print(calculate_practical_cps(delay=self.delay,
+                                                                                      interval=self.interval,
+                                                                                      duration=5)))
+
         self.menu_bar.add_cascade(label='Configuration', menu=self.config_menu)
+        self.menu_bar.add_cascade(label='Calculations', menu=self.calculate_menu)
 
         self.window.config(menu=self.menu_bar)
 
