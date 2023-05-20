@@ -213,12 +213,17 @@ class App:
         self.click_selection.set(click_actions[self.button])
         self.click_selection.grid()
 
-        self.button_save_config = tk.Button(command=self.save_config_button, image=self.icon_save_button_img, bd=0,
-                                            highlightthickness=0)
-        self.button_save_config.grid()
+        # set menu bar
+        self.menu_bar = tk.Menu()
 
-        self.config_select_button = tk.Button(command=self.open_file_dialog,image=self.icon_config_img,bd=0, highlightthickness=0)
-        self.config_select_button.grid()
+        self.config_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.config_menu.add_command(label='Open config', command=self.open_config_dialog)
+        self.config_menu.add_command(label='Save config', command=self.save_config)
+        self.config_menu.add_command(label='Save config as', command=self.save_config_as)
+
+        self.menu_bar.add_cascade(label='Configuration', menu=self.config_menu)
+
+        self.window.config(menu=self.menu_bar)
 
         self.window.mainloop()
 
@@ -253,7 +258,10 @@ class App:
             self.hotkey_button.config(text='Press key', state='normal')
             self.current_hotkey_label.config(text='Current Hotkey: ' + self.hotkey_key)
 
-    def write_config(self, hotkey, delay, interval, button):
+    def write_config(self,hotkey, delay, interval, button, config_=None):
+        if config_ is None:
+            config_ = self.config_name
+
         config = configparser.ConfigParser()
         config['SETTINGS'] = {
             'hotkey_key': hotkey,
@@ -262,18 +270,21 @@ class App:
             'button': str(button)
         }
 
-        with open(self.config_name, 'w') as config_file:
+        with open(config_, 'w') as config_file:
             config.write(config_file)
 
-        print(f'''The following values are saved in the config [{self.config_name}]:\n{self.values_str(space_nums=4,
+        print(f'''The following values are saved in the config [{config}]:\n{self.values_str(space_nums=4,
                                                                                        hotkey_key=hotkey,
                                                                                        delay=delay,
                                                                                        interval=interval,
                                                                                        button=button)}\n''')
 
-    def load_config(self):
+    def load_config(self, config_=None):
+        if config_ is None:
+            config_ = self.config_name
+
         config = configparser.ConfigParser()
-        config.read(self.config_name)
+        config.read(config_)
 
         if 'SETTINGS' in config:
             settings = config['SETTINGS']
@@ -329,20 +340,37 @@ class App:
         seconds = int(seconds)
         return f"{hours}:{minutes}:{seconds}:{milliseconds}"
 
-    def save_config_button(self):
+    def save_config(self):
         self.update_values()
         self.write_config(hotkey=self.hotkey_key, delay=self.delay, interval=self.interval, button=self.button)
+
+    def save_config_as(self):
+        file_path = filedialog.asksaveasfilename(
+            initialdir=self.folder_configs,
+            title='Save As',
+            filetypes=(('INI files', '*.ini'), ('All files', '*.*')),
+        )
+        if file_path:
+            if not file_path.endswith('.ini'):
+                file_path += '.ini'
+            print('Selected file path:', file_path)
+
+            self.update_values()
+            self.write_config(hotkey=self.hotkey_key, delay=self.delay, interval=self.interval,
+                              button=self.button, config_=file_path)
 
     def handle_click(self, event):
         if event.widget == self.window:
             self.window.focus_set()
 
-    def open_file_dialog(self):
+    def open_config_dialog(self):
         root = tk.Tk()
         root.withdraw()
 
-        file_path, = filedialog.askopenfilenames(initialdir=self.folder_configs)
-        if file_path != '':
+        file_path = filedialog.askopenfilenames(initialdir=self.folder_configs)
+        if file_path:
+            file_path, = file_path
+            print('Selected file path:', file_path)
             keyboard.remove_hotkey(self.hotkey_key)
 
             self.config_name = file_path
