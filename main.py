@@ -9,6 +9,7 @@ from textwrap import dedent, indent
 from PIL import Image, ImageTk
 import os
 
+MOUSE_EVENT_NOTHING = 0
 MOUSE_EVENT_LEFTDOWN = 0x0002
 MOUSE_EVENT_LEFTUP = 0x0004
 MOUSE_EVENT_RIGHTDOWN = 0x0008
@@ -18,22 +19,19 @@ MOUSE_EVENT_MIDDLEUP = 0x0040
 
 
 MOUSE_BUTTONS = {
-    0: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP),
-    1: (MOUSE_EVENT_RIGHTDOWN, MOUSE_EVENT_RIGHTUP),
-    2: (MOUSE_EVENT_MIDDLEDOWN, MOUSE_EVENT_MIDDLEUP)
+    0: (MOUSE_EVENT_NOTHING, MOUSE_EVENT_NOTHING),
+    1: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP),
+    2: (MOUSE_EVENT_RIGHTDOWN, MOUSE_EVENT_RIGHTUP),
+    3: (MOUSE_EVENT_MIDDLEDOWN, MOUSE_EVENT_MIDDLEUP)
 }
 
 click_actions = {
-    0: "Left click",
-    1: "Right click",
-    2: "Middle click"
+    1: 'Left click',
+    2: 'Right click',
+    3: 'Middle click',
 }
 
-actions_click = {
-    "Left click": 0,
-    "Right click": 1,
-    "Middle click": 2
-}
+actions_click = {v: k for k, v in click_actions.items()}
 
 
 def click(button=0, delay=0.001):
@@ -148,7 +146,7 @@ class App:
         'hotkey_key': 'F6',
         'delay': 0.001,
         'interval': 0,
-        'button': 0,
+        'button': 1,
     }
     standard_autoclicker_settings_values = standard_autoclicker_settings.values()
 
@@ -280,15 +278,17 @@ class App:
         if config_ is None:
             config_ = self.config_name
 
+        defaul_config = App.standard_autoclicker_settings
+
         config = configparser.ConfigParser()
         config.read(config_)
 
         if 'SETTINGS' in config:
             settings = config['SETTINGS']
-            hotkey_key = settings.get('hotkey_key', 'F6')
-            delay = settings.getfloat('delay', 0.001)
-            interval = settings.getfloat('interval', 0)
-            button = settings.getint('button', 0)
+            hotkey_key = settings.get('hotkey_key', defaul_config['hotkey_key'])
+            delay = settings.getfloat('delay', defaul_config['delay'])
+            interval = settings.getfloat('interval', defaul_config['interval'])
+            button = settings.getint('button', defaul_config['button'])
             print(f'''From [{self.config_name}] such values were loaded:\n{self.values_str(space_nums=4,
                                                                                            hotkey_key=hotkey_key,
                                                                                            delay=delay,
