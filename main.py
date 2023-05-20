@@ -48,38 +48,38 @@ def calculate_theoretical_cps(delay, interval):
     return clicks_per_second
 
 
-def calculate_practical_cps(delay, interval, duration):
+def calculate_practical_cps(delay, interval, calculation_duration):
     total_clicks = 0
     start_time = time.perf_counter()
 
-    while time.perf_counter() - start_time < duration:
+    while time.perf_counter() - start_time < calculation_duration:
         click(0, delay)
         time.sleep(interval)
         total_clicks += 1
 
-    clicks_per_second = total_clicks / duration
+    clicks_per_second = total_clicks / calculation_duration
     return clicks_per_second
 
 
 class CPSCalculationThread(threading.Thread):
-    def __init__(self, delay, interval, duration, callback):
+    def __init__(self, delay, interval, calculation_duration, callback):
         super().__init__()
         self.delay = delay
         self.interval = interval
-        self.duration = duration
+        self.calculation_duration = calculation_duration
         self.callback = callback
 
     def run(self):
         total_clicks = 0
         start_time = time.perf_counter()
 
-        while time.perf_counter() - start_time < self.duration:
+        while time.perf_counter() - start_time < self.calculation_duration:
             # Выполнение расчетов CPS
             click(0, self.delay)
             time.sleep(self.interval)
             total_clicks += 1
 
-        clicks_per_second = total_clicks / self.duration
+        clicks_per_second = total_clicks / self.calculation_duration
 
         # Вызов обратного вызова с результатом расчетов
         self.callback(clicks_per_second)
@@ -232,7 +232,7 @@ class App:
         self.config_name = self.standard_config_name
 
         self.hotkey_key, self.delay, self.interval, self.button = self.load_config()
-        self.duration = 1
+        self.calculation_duration = 1
 
         self.autoclicker = AutoClicker(button=self.button, delay=self.delay, interval=self.interval)
 
@@ -263,10 +263,9 @@ class App:
         self.config_menu.add_command(label='Save config as', command=self.save_config_as)
 
         self.calculate_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.calculate_menu.add_command(label='calculate_theoretical_cps',
-                                        command=lambda: print(calculate_theoretical_cps(delay=self.delay,
-                                                                                        interval=self.interval)))
-        self.calculate_menu.add_command(label='calculate_practical_cps',
+        self.calculate_menu.add_command(label='Calculate theoretical cps',
+                                        command=self.calculate_theoretical_cps)
+        self.calculate_menu.add_command(label='Calculate practical cps',
                                         command=self.calculate_practical_cps)
 
         self.menu_bar.add_cascade(label='Configuration', menu=self.config_menu)
@@ -437,12 +436,20 @@ class App:
             self.hotkey = keyboard.add_hotkey(self.hotkey_key, self.toggle_autoclicker)
 
     def calculate_practical_cps(self):
+        self.update_values()
+
         def handle_result(cps_result):
-            print("Clicks per second:", cps_result)
+            print(f'Practical clicks per second ~ {cps_result} | {self.delay=}'
+                  f' {self.interval=} {self.calculation_duration=}')
 
         cps_thread = CPSCalculationThread(delay=self.delay, interval=self.interval,
-                                          duration=self.duration, callback=handle_result)
+                                          calculation_duration=self.calculation_duration, callback=handle_result)
         cps_thread.start()
+
+    def calculate_theoretical_cps(self):
+        self.update_values()
+        print(f'Theoretical clicks per second: {calculate_theoretical_cps(delay=self.delay, interval=self.interval)}'
+              f' | {self.delay=} {self.interval=}')
 
 
 if __name__ == '__main__':
