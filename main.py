@@ -40,6 +40,25 @@ def click(button=0, delay=0.001):
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][1], 0, 0, 0, 0)  # up
 
 
+def calculate_theoretical_cps(delay, interval):
+    click_time = delay + interval
+    clicks_per_second = 1 / click_time
+    return clicks_per_second
+
+
+def calculate_practical_cps(delay, interval, duration):
+    total_clicks = 0
+    start_time = time.perf_counter()
+
+    while time.perf_counter() - start_time < duration:
+        click(0, delay)
+        time.sleep(interval)
+        total_clicks += 1
+
+    clicks_per_second = total_clicks / duration
+    return clicks_per_second
+
+
 class AutoClicker(threading.Thread):
     def __init__(self, button=0, delay=0.001, interval=0):
         super().__init__()
