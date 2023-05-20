@@ -9,16 +9,13 @@ from textwrap import dedent, indent
 from PIL import Image, ImageTk
 import os
 
-MOUSE_EVENT_MOVE = 0x0001
 MOUSE_EVENT_LEFTDOWN = 0x0002
 MOUSE_EVENT_LEFTUP = 0x0004
 MOUSE_EVENT_RIGHTDOWN = 0x0008
 MOUSE_EVENT_RIGHTUP = 0x0010
 MOUSE_EVENT_MIDDLEDOWN = 0x0020
 MOUSE_EVENT_MIDDLEUP = 0x0040
-MOUSE_EVENT_WHEEL = 0x0800
-MOUSE_EVENT_XDOWN = 0x0080
-MOUSE_EVENT_XUP = 0x0100
+
 
 MOUSE_BUTTONS = {
     0: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP),
@@ -202,14 +199,14 @@ class App:
         self.current_hotkey_label = tk.Label(self.window, text=f'Current Hotkey: {self.hotkey_key}')
         self.current_hotkey_label.grid()
 
-        self.delay_input = tk.Entry()
+        self.delay_input = tk.Entry(width=5)
         self.delay_input.insert(0, str(self.delay))
         self.delay_input.grid()
 
         self.time_input = TimeInput(self.window, time_=self.format_time(self.interval).split(':'))
         self.time_input.grid()
 
-        self.click_selection = ttk.Combobox(values=list(actions_click.keys()), state='readonly')
+        self.click_selection = ttk.Combobox(values=list(actions_click.keys()), state='readonly', width=10)
         self.click_selection.set(click_actions[self.button])
         self.click_selection.grid()
 

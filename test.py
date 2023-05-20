@@ -1,24 +1,32 @@
-import tkinter as tk
-from tkinter import filedialog
-
-def save_as():
-    file_path = filedialog.asksaveasfilename(
-        initialdir="/",  # Начальная директория
-        title="Save As",  # Заголовок диалогового окна
-        filetypes=(("INI files", "*.ini"), ("All files", "*.*"))
-    )
-
-    if file_path:
-        if file_path.endswith('.ini'):
-            print('ini')
-        else:
-            file_path += '.ini'
-        print("Selected file path:", file_path)
+import time
+import ctypes
 
 
-root = tk.Tk()
+def calculate_theoretical_cps(delay, interval):
+    click_time = delay + interval
+    clicks_per_second = 1 / click_time
+    return clicks_per_second
 
-button = tk.Button(root, text="Save As", command=save_as)
-button.pack()
 
-root.mainloop()
+def click(button=0, delay=0.001):
+    ctypes.windll.user32.mouse_event(0, 0, 0, 0, 0)  # down
+    time.sleep(delay)
+    ctypes.windll.user32.mouse_event(0, 0, 0, 0, 0)  # up
+
+
+def calculate_practical_cps(delay, interval, duration):
+    total_clicks = 0
+    start_time = time.perf_counter()
+
+    while time.perf_counter() - start_time < duration:
+        click(0, delay)
+        time.sleep(interval)
+        total_clicks += 1
+
+    clicks_per_second = total_clicks / duration
+    return clicks_per_second
+
+
+cps = calculate_practical_cps(0.01, 0.01, 1)
+print(f"Количество кликов в секунду: {cps:.2f}")
+
