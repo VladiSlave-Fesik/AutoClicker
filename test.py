@@ -1,32 +1,50 @@
+import threading
 import time
-import ctypes
+import tkinter as tk
+from main import click
 
+class CPSCalculationThread(threading.Thread):
+    def __init__(self, delay, interval, duration, callback):
+        super().__init__()
+        self.delay = delay
+        self.interval = interval
+        self.duration = duration
+        self.callback = callback
 
-def calculate_theoretical_cps(delay, interval):
-    click_time = delay + interval
-    clicks_per_second = 1 / click_time
-    return clicks_per_second
+    def run(self):
+        total_clicks = 0
+        start_time = time.perf_counter()
 
+        while time.perf_counter() - start_time < self.duration:
+            # Выполнение расчетов CPS
+            click(0, self.delay)
+            time.sleep(self.interval)
+            total_clicks += 1
 
-def click(button=0, delay=0.001):
-    ctypes.windll.user32.mouse_event(0, 0, 0, 0, 0)  # down
-    time.sleep(delay)
-    ctypes.windll.user32.mouse_event(0, 0, 0, 0, 0)  # up
+        clicks_per_second = total_clicks / self.duration
 
+        # Вызов обратного вызова с результатом расчетов
+        self.callback(clicks_per_second)
 
-def calculate_practical_cps(delay, interval, duration):
-    total_clicks = 0
-    start_time = time.perf_counter()
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.delay = 0.01
+        self.interval = 0.01
+        self.duration = 1
 
-    while time.perf_counter() - start_time < duration:
-        click(0, delay)
-        time.sleep(interval)
-        total_clicks += 1
+        self.button = tk.Button(self, text="Calculate CPS", command=self.practical_cps)
+        self.button.pack()
 
-    clicks_per_second = total_clicks / duration
-    return clicks_per_second
+    def practical_cps(self):
+        # Обработчик нажатия кнопки
+        def handle_result(cps_result):
+            print("Clicks per second:", cps_result)
+            # Здесь можно выполнить обновление интерфейса или выполнить другие действия с результатом
 
+        cps_thread = CPSCalculationThread(delay=self.delay, interval=self.interval,
+                                          duration=self.duration, callback=handle_result)
+        cps_thread.start()
 
-# cps = calculate_practical_cps(0.01, 0.01, 1)
-# print(f"Количество кликов в секунду: {cps:.2f}")
-
+app = App()
+app.mainloop()
