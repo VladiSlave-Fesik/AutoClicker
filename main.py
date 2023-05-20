@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, messagebox
 import time
 import ctypes
 import threading
@@ -439,8 +439,11 @@ class App:
         self.update_values()
 
         def handle_result(cps_result):
-            print(f'Practical clicks per second ~ {cps_result} | {self.delay=}'
-                  f' {self.interval=} {self.calculation_duration=}')
+            print(f'Practical clicks per second ~ {cps_result} |\n\t{self.delay=}'
+                  f'\n\t{self.interval=}\n\t{self.calculation_duration=}\n')
+
+            message = f'Practical clicks per second ~ {cps_result}'
+            messagebox.showinfo("CPS Calculation Result", message)
 
         cps_thread = CPSCalculationThread(delay=self.delay, interval=self.interval,
                                           calculation_duration=self.calculation_duration, callback=handle_result)
@@ -448,8 +451,11 @@ class App:
 
     def calculate_theoretical_cps(self):
         self.update_values()
-        print(f'Theoretical clicks per second: {calculate_theoretical_cps(delay=self.delay, interval=self.interval)}'
-              f' | {self.delay=} {self.interval=}')
+        cps_result = calculate_theoretical_cps(delay=self.delay, interval=self.interval)
+        print(f'Theoretical clicks per second: {cps_result} |\n\t{self.delay=}\n\t{self.interval=}\n')
+
+        message = f'Theoretical clicks per second ~ {cps_result}'
+        messagebox.showinfo('CPS Calculation Result', message)
 
 
 if __name__ == '__main__':
