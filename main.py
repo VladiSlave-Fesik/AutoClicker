@@ -171,9 +171,8 @@ class TimeInput(tk.Frame):
             hour = int(hour)
             minute = int(minute)
             second = int(second)
-            millisecond = int(millisecond)
-            if 0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59 and 0 <= millisecond <= 999:
-                return f"{hour:02d}:{minute:02d}:{second:02d}:{millisecond:03d}"
+            millisecond = self.format_milliseconds(millisecond)
+            return f'{hour}:{minute}:{second}:{millisecond}'
         except ValueError:
             pass
 
@@ -184,6 +183,14 @@ class TimeInput(tk.Frame):
         self.minute.set(time_[1])
         self.second.set(time_[2])
         self.millisecond.set(time_[3])
+
+    @staticmethod
+    def format_milliseconds(milliseconds):
+        if len(milliseconds) > 3:
+            milliseconds = milliseconds[:3] + '.' + milliseconds[3:]
+        elif len(milliseconds) < 3:
+            milliseconds = milliseconds.zfill(3)
+        return milliseconds
 
 
 class App:
@@ -279,10 +286,10 @@ class App:
         self.update_values()
         if self.autoclicker.running:
             self.autoclicker.stop()
-            print('\nStop autoclicker\n')
+            print('Stop autoclicker\n')
         else:
             if not self.autoclicker.running:
-                print(f'Run autoclicker with:\n{self.values_str(4)}')
+                print(f'Run autoclicker with:\n{self.values_str(4)}\n')
                 self.autoclicker = AutoClicker(button=self.button, delay=self.delay,
                                                interval=self.interval)
                 self.autoclicker.start()
@@ -306,7 +313,7 @@ class App:
             self.hotkey_button.config(text='Press key', state='normal')
             self.current_hotkey_label.config(text='Current Hotkey: ' + self.hotkey_key)
 
-    def write_config(self,hotkey, delay, interval, button, config_=None):
+    def write_config(self, hotkey, delay, interval, button, config_=None):
         if config_ is None:
             config_ = self.config_name
 
@@ -377,7 +384,8 @@ class App:
 
     @staticmethod
     def time_to_seconds(time_: str):
-        h, m, s, ms = map(int, time_.split(':'))
+        h, m, s = map(int, time_.split(':')[:-1])
+        ms = float(time_.split(':')[-1])
         seconds = (h * 3600) + (m * 60) + s + (ms / 1000)
         return seconds
 
@@ -454,7 +462,7 @@ class App:
         cps_result = calculate_theoretical_cps(delay=self.delay, interval=self.interval)
         print(f'Theoretical clicks per second: {cps_result} |\n\t{self.delay=}\n\t{self.interval=}\n')
 
-        message = f'Theoretical clicks per second ~ {cps_result}'
+        message = f'Theoretical clicks per second: {cps_result}'
         messagebox.showinfo('CPS Calculation Result', message)
 
 
