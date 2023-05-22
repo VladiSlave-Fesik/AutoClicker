@@ -36,7 +36,7 @@ actions_click = {v: k for k, v in click_actions.items()}
 
 def click(button=0, delay=0.001):
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][0], 0, 0, 0, 0)  # down
-    time.sleep(delay)
+    skip_time(delay)
     ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][1], 0, 0, 0, 0)  # up
 
 
@@ -54,11 +54,19 @@ def calculate_practical_cps(delay, interval, calculation_duration):
 
     while time.perf_counter() - start_time < calculation_duration:
         click(0, delay)
-        time.sleep(interval)
+        skip_time(interval)
         total_clicks += 1
 
     clicks_per_second = total_clicks / calculation_duration
     return clicks_per_second
+
+
+def skip_time(seconds):
+    start_time = time.perf_counter()
+    target_time = start_time + seconds
+
+    while time.perf_counter() < target_time:
+        pass
 
 
 class CPSCalculationThread(threading.Thread):
@@ -76,7 +84,7 @@ class CPSCalculationThread(threading.Thread):
         while time.perf_counter() - start_time < self.calculation_duration:
             # Выполнение расчетов CPS
             click(0, self.delay)
-            time.sleep(self.interval)
+            skip_time(self.interval)
             total_clicks += 1
 
         clicks_per_second = total_clicks / self.calculation_duration
@@ -104,7 +112,7 @@ class AutoClicker(threading.Thread):
         self.running = True
         while self.running:
             click(button=self.button, delay=self.delay)
-            time.sleep(self.interval)
+            skip_time(self.interval)
 
     def stop(self):
         self.running = False
@@ -328,7 +336,7 @@ class App:
         with open(config_, 'w') as config_file:
             config.write(config_file)
 
-        print(f'''The following values are saved in the config [{config}]:\n{self.values_str(space_nums=4,
+        print(f'''The following values are saved in the config [{config_}]:\n{self.values_str(space_nums=4,
                                                                                        hotkey_key=hotkey,
                                                                                        delay=delay,
                                                                                        interval=interval,
@@ -349,7 +357,7 @@ class App:
             delay = settings.getfloat('delay', defaul_config['delay'])
             interval = settings.getfloat('interval', defaul_config['interval'])
             button = settings.getint('button', defaul_config['button'])
-            print(f'''From [{self.config_name}] such values were loaded:\n{self.values_str(space_nums=4,
+            print(f'''From [{config_}] such values were loaded:\n{self.values_str(space_nums=4,
                                                                                            hotkey_key=hotkey_key,
                                                                                            delay=delay,
                                                                                            interval=interval,
