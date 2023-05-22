@@ -1,4 +1,4 @@
-## AutoClicker
+# AutoClicker
 
 ![Preview](https://github.com/VladiSlave-Fesik/AutoClicker/assets/99354516/668b1a43-59b0-4a30-b8d8-53f6aa08e10d)
 
