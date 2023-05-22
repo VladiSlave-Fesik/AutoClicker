@@ -447,10 +447,10 @@ class App:
         self.update_values()
 
         def handle_result(cps_result):
-            print(f'Practical clicks per second ~ {cps_result} |\n\t{self.delay=}'
+            print(f'Practical clicks per second ~ {cps_result:.2f} with:\n\t{self.delay=}'
                   f'\n\t{self.interval=}\n\t{self.calculation_duration=}\n')
 
-            message = f'Practical clicks per second ~ {cps_result}'
+            message = f'Practical clicks per second ~ {cps_result:.2f}'
             messagebox.showinfo("CPS Calculation Result", message)
 
         cps_thread = CPSCalculationThread(delay=self.delay, interval=self.interval,
@@ -460,9 +460,9 @@ class App:
     def calculate_theoretical_cps(self):
         self.update_values()
         cps_result = calculate_theoretical_cps(delay=self.delay, interval=self.interval)
-        print(f'Theoretical clicks per second: {cps_result} |\n\t{self.delay=}\n\t{self.interval=}\n')
+        print(f'Theoretical clicks per second: {cps_result:.2f} with:\n\t{self.delay=}\n\t{self.interval=}\n')
 
-        message = f'Theoretical clicks per second: {cps_result}'
+        message = f'Theoretical clicks per second: {cps_result:.2f}'
         messagebox.showinfo('CPS Calculation Result', message)
 
 
