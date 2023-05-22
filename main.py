@@ -1,13 +1,14 @@
+import configparser
+import ctypes
+import os
+import threading
+import time
+from textwrap import indent
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import time
-import ctypes
-import threading
+
 import keyboard
-import configparser
-from textwrap import dedent, indent
 from PIL import Image, ImageTk
-import os
 
 MOUSE_EVENT_NOTHING = 0
 MOUSE_EVENT_LEFTDOWN = 0x0002
@@ -152,13 +153,13 @@ class TimeInput(tk.Frame):
             self.second.set(time_[2])
             self.millisecond.set(time_[3])
 
-        self.hour_entry = tk.Entry(self, textvariable=self.hour, width=2, justify='center', bd=0,
+        self.hour_entry = tk.Entry(self, textvariable=self.hour, width=5, justify='center', bd=1,
                                    highlightthickness=0)
-        self.minute_entry = tk.Entry(self, textvariable=self.minute, width=2, justify='center', bd=0,
+        self.minute_entry = tk.Entry(self, textvariable=self.minute, width=5, justify='center', bd=1,
                                      highlightthickness=0)
-        self.second_entry = tk.Entry(self, textvariable=self.second, width=2, justify='center', bd=0,
+        self.second_entry = tk.Entry(self, textvariable=self.second, width=5, justify='center', bd=1,
                                      highlightthickness=0)
-        self.millisecond_entry = tk.Entry(self, textvariable=self.millisecond, width=5, justify='center', bd=0,
+        self.millisecond_entry = tk.Entry(self, textvariable=self.millisecond, width=5, justify='center', bd=1,
                                           highlightthickness=0)
 
         self.hour_entry.pack(side=tk.LEFT)
@@ -214,10 +215,13 @@ class App:
         self.window = tk.Tk()
         self.window.title()
 
-        self.x_size = 300
-        self.y_size = 300
+        self.x_size = 250
+        self.y_size = 150
         self.window.geometry(f'{self.x_size}x{self.y_size}')
         self.window.title('AutoClicker')
+
+        # flag
+        self.is_waiting_for_key = False
 
         # folders
         self.folder_data = 'data'
@@ -227,15 +231,9 @@ class App:
         # load images
         self.icon_name = os.path.join(self.folder_images, 'autoclicker.ico')
         self.icon_key_button = os.path.join(self.folder_images, 'key_0.png')
-        self.icon_save_button = os.path.join(self.folder_images, 'save.png')
-        self.icon_config = os.path.join(self.folder_images, 'config.png')
 
         self.icon_key_button_img = Image.open(self.icon_key_button).resize((50, 50))
         self.icon_key_button_img = ImageTk.PhotoImage(self.icon_key_button_img)
-        self.icon_save_button_img = Image.open(self.icon_save_button).resize((50, 50))
-        self.icon_save_button_img = ImageTk.PhotoImage(self.icon_save_button_img)
-        self.icon_config_img = Image.open(self.icon_config).resize((50, 50))
-        self.icon_config_img = ImageTk.PhotoImage(self.icon_config_img)
 
         self.window.iconbitmap(default=self.icon_name)
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
@@ -252,22 +250,28 @@ class App:
         self.autoclicker = AutoClicker(button=self.button, delay=self.delay, interval=self.interval)
 
         self.hotkey_button = tk.Button(command=self.get_key, image=self.icon_key_button_img, bd=0, highlightthickness=0)
-        self.hotkey_button.grid()
+        self.hotkey_button.grid(row=0, column=0)
 
         self.hotkey = keyboard.add_hotkey(self.hotkey_key, self.toggle_autoclicker)
         self.current_hotkey_label = tk.Label(self.window, text=f'Current Hotkey: {self.hotkey_key}')
-        self.current_hotkey_label.grid()
+        self.current_hotkey_label.grid(row=0, column=1)
 
-        self.delay_input = tk.Entry(width=5)
+        self.delay_label = tk.Label(self.window, text='Delay:')
+        self.delay_label.grid(row=1, column=0)
+        self.delay_input = tk.Entry(width=15)
         self.delay_input.insert(0, str(self.delay))
-        self.delay_input.grid()
+        self.delay_input.grid(row=1, column=1)
 
+        self.time_label = tk.Label(self.window, text='Interval:\n(h:m:s:ms)')
+        self.time_label.grid(row=2, column=0)
         self.time_input = TimeInput(self.window, time_=self.format_time(self.interval).split(':'))
-        self.time_input.grid()
+        self.time_input.grid(row=2, column=1)
 
+        self.click_label = tk.Label(self.window, text='Click Action:')
+        self.click_label.grid(row=3, column=0)
         self.click_selection = ttk.Combobox(values=list(actions_click.keys()), state='readonly', width=10)
         self.click_selection.set(click_actions[self.button])
-        self.click_selection.grid()
+        self.click_selection.grid(row=3, column=1)
 
         # set menu bar
         self.menu_bar = tk.Menu()
@@ -296,16 +300,18 @@ class App:
             self.autoclicker.stop()
             print('Stop autoclicker\n')
         else:
-            if not self.autoclicker.running:
+            if not self.autoclicker.running and not self.is_waiting_for_key:
                 print(f'Run autoclicker with:\n{self.values_str(4)}\n')
                 self.autoclicker = AutoClicker(button=self.button, delay=self.delay,
                                                interval=self.interval)
                 self.autoclicker.start()
 
     def get_key(self):
-        self.hotkey_button.config(state='disabled')
-        self.current_hotkey_label.config(text='Waiting for input...\n (Escape to cancel)')
-        self.window.bind('<Key>', self.show_key)
+        if not self.is_waiting_for_key:
+            self.hotkey_button.config(state='disabled')
+            self.current_hotkey_label.config(text='Waiting for input...\n (Escape to cancel)')
+            self.window.bind('<Key>', self.show_key)
+            self.is_waiting_for_key = True
 
     def show_key(self, event):
         pressed_key = event.keysym
@@ -320,6 +326,8 @@ class App:
         else:
             self.hotkey_button.config(text='Press key', state='normal')
             self.current_hotkey_label.config(text='Current Hotkey: ' + self.hotkey_key)
+        self.is_waiting_for_key = False
+
 
     def write_config(self, hotkey, delay, interval, button, config_=None):
         if config_ is None:
