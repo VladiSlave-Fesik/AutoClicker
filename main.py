@@ -8,7 +8,6 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 import keyboard
-from PIL import Image, ImageTk
 
 MOUSE_EVENT_NOTHING = 0
 MOUSE_EVENT_LEFTDOWN = 0x0002
@@ -230,10 +229,9 @@ class App:
 
         # load images
         self.icon_name = os.path.join(self.folder_images, 'autoclicker.ico')
-        self.icon_key_button = os.path.join(self.folder_images, 'key_0.png')
+        self.icon_key_button = os.path.join(self.folder_images, 'key.png')
 
-        self.icon_key_button_img = Image.open(self.icon_key_button).resize((50, 50))
-        self.icon_key_button_img = ImageTk.PhotoImage(self.icon_key_button_img)
+        self.icon_key_button_img = tk.PhotoImage(file=self.icon_key_button)
 
         self.window.iconbitmap(default=self.icon_name)
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
