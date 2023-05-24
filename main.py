@@ -1,13 +1,13 @@
 import configparser
 import ctypes
-import os
+from os.path import join as path_join
 import threading
 import time
 from textwrap import indent
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
-import keyboard
+from keyboard import add_hotkey, remove_hotkey
 
 MOUSE_EVENT_NOTHING = 0
 MOUSE_EVENT_LEFTDOWN = 0x0002
@@ -16,7 +16,6 @@ MOUSE_EVENT_RIGHTDOWN = 0x0008
 MOUSE_EVENT_RIGHTUP = 0x0010
 MOUSE_EVENT_MIDDLEDOWN = 0x0020
 MOUSE_EVENT_MIDDLEUP = 0x0040
-
 
 MOUSE_BUTTONS = {
     0: (MOUSE_EVENT_NOTHING, MOUSE_EVENT_NOTHING),
@@ -224,12 +223,12 @@ class App:
 
         # folders
         self.folder_data = 'data'
-        self.folder_configs = os.path.join(self.folder_data, 'configs')
-        self.folder_images = os.path.join(self.folder_data, 'images')
+        self.folder_configs = path_join(self.folder_data, 'configs')
+        self.folder_images = path_join(self.folder_data, 'images')
 
         # load images
-        self.icon_name = os.path.join(self.folder_images, 'autoclicker.ico')
-        self.icon_key_button = os.path.join(self.folder_images, 'key.png')
+        self.icon_name = path_join(self.folder_images, 'autoclicker.ico')
+        self.icon_key_button = path_join(self.folder_images, 'key.png')
 
         self.icon_key_button_img = tk.PhotoImage(file=self.icon_key_button)
 
@@ -239,7 +238,7 @@ class App:
         self.window.bind("<Button-1>", self.handle_click)
 
         # getting config
-        self.standard_config_name = os.path.join(self.folder_configs, 'config.ini')
+        self.standard_config_name = path_join(self.folder_configs, 'config.ini')
         self.config_name = self.standard_config_name
 
         self.hotkey_key, self.delay, self.interval, self.button = self.load_config()
@@ -250,7 +249,7 @@ class App:
         self.hotkey_button = tk.Button(command=self.get_key, image=self.icon_key_button_img, bd=0, highlightthickness=0)
         self.hotkey_button.grid(row=0, column=0)
 
-        self.hotkey = keyboard.add_hotkey(self.hotkey_key, self.toggle_autoclicker)
+        self.hotkey = add_hotkey(self.hotkey_key, self.toggle_autoclicker)
         self.current_hotkey_label = tk.Label(self.window, text=f'Current Hotkey: {self.hotkey_key}')
         self.current_hotkey_label.grid(row=0, column=1)
 
@@ -318,14 +317,13 @@ class App:
             self.hotkey_button.config(text='Press key', state='normal')
             self.window.unbind('<Key>')
 
-            keyboard.remove_hotkey(self.hotkey_key)
+            remove_hotkey(self.hotkey_key)
             self.hotkey_key = pressed_key
-            self.hotkey = keyboard.add_hotkey(event.keysym, self.toggle_autoclicker)
+            self.hotkey = add_hotkey(event.keysym, self.toggle_autoclicker)
         else:
             self.hotkey_button.config(text='Press key', state='normal')
             self.current_hotkey_label.config(text='Current Hotkey: ' + self.hotkey_key)
         self.is_waiting_for_key = False
-
 
     def write_config(self, hotkey, delay, interval, button, config_=None):
         if config_ is None:
@@ -343,10 +341,10 @@ class App:
             config.write(config_file)
 
         print(f'''The following values are saved in the config [{config_}]:\n{self.values_str(space_nums=4,
-                                                                                       hotkey_key=hotkey,
-                                                                                       delay=delay,
-                                                                                       interval=interval,
-                                                                                       button=button)}\n''')
+                                                                                              hotkey_key=hotkey,
+                                                                                              delay=delay,
+                                                                                              interval=interval,
+                                                                                              button=button)}\n''')
 
     def load_config(self, config_=None):
         if config_ is None:
@@ -364,10 +362,10 @@ class App:
             interval = settings.getfloat('interval', defaul_config['interval'])
             button = settings.getint('button', defaul_config['button'])
             print(f'''From [{config_}] such values were loaded:\n{self.values_str(space_nums=4,
-                                                                                           hotkey_key=hotkey_key,
-                                                                                           delay=delay,
-                                                                                           interval=interval,
-                                                                                           button=button)}\n''')
+                                                                                  hotkey_key=hotkey_key,
+                                                                                  delay=delay,
+                                                                                  interval=interval,
+                                                                                  button=button)}\n''')
             return hotkey_key, delay, interval, button
 
         print('Standard values are loaded')
@@ -443,7 +441,7 @@ class App:
         if file_path:
             file_path, = file_path
             print('Selected file path:', file_path)
-            keyboard.remove_hotkey(self.hotkey_key)
+            remove_hotkey(self.hotkey_key)
 
             self.config_name = file_path
             self.hotkey_key, self.delay, self.interval, self.button = self.load_config()
@@ -455,7 +453,7 @@ class App:
             self.time_input.update_time(self.format_time(self.interval).split(':'))
             self.click_selection.set(click_actions[self.button])
 
-            self.hotkey = keyboard.add_hotkey(self.hotkey_key, self.toggle_autoclicker)
+            self.hotkey = add_hotkey(self.hotkey_key, self.toggle_autoclicker)
 
     def calculate_practical_cps(self):
         self.update_values()
