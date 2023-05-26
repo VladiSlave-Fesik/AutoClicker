@@ -1,13 +1,14 @@
+import time
 import configparser
 import ctypes
 from os.path import join as path_join
 import threading
-import time
 from textwrap import indent
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 from keyboard import add_hotkey, remove_hotkey
+
 
 MOUSE_EVENT_NOTHING = 0
 MOUSE_EVENT_LEFTDOWN = 0x0002
