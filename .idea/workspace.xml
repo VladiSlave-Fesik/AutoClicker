@@ -44,7 +44,7 @@
       <recent name="E:\Python_Projects\autoclicker\data\configs" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.add_lib">
+  <component name="RunManager" selected="Python.test">
     <configuration name="add_lib" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="autoclicker" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -110,8 +110,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.add_lib" />
         <item itemvalue="Python.test" />
+        <item itemvalue="Python.add_lib" />
       </list>
     </recent_temporary>
   </component>
