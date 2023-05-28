@@ -18,6 +18,10 @@ MOUSE_EVENT_RIGHTUP = 0x0010
 MOUSE_EVENT_MIDDLEDOWN = 0x0020
 MOUSE_EVENT_MIDDLEUP = 0x0040
 
+MOUSE_EVENT_XDOWN = 0x0080
+MOUSE_EVENT_XUP = 0x0100
+
+
 MOUSE_BUTTONS = {
     0: (MOUSE_EVENT_NOTHING, MOUSE_EVENT_NOTHING),
     1: (MOUSE_EVENT_LEFTDOWN, MOUSE_EVENT_LEFTUP),
@@ -25,19 +29,30 @@ MOUSE_BUTTONS = {
     3: (MOUSE_EVENT_MIDDLEDOWN, MOUSE_EVENT_MIDDLEUP)
 }
 
+MOUSE_EVENTS = {
+    0: ((MOUSE_EVENT_NOTHING, 0, 0, 0, 0), (MOUSE_EVENT_NOTHING, 0, 0, 0, 0)),
+    1: ((MOUSE_EVENT_LEFTDOWN, 0, 0, 0, 0), (MOUSE_EVENT_LEFTUP, 0, 0, 0, 0)),
+    2: ((MOUSE_EVENT_RIGHTDOWN, 0, 0, 0, 0), (MOUSE_EVENT_RIGHTUP, 0, 0, 0, 0)),
+    3: ((MOUSE_EVENT_MIDDLEDOWN, 0, 0, 0, 0), (MOUSE_EVENT_MIDDLEUP, 0, 0, 0, 0)),
+    4: ((MOUSE_EVENT_XDOWN, 0, 0, 1, 0), (MOUSE_EVENT_XUP, 0, 0, 1, 0)),
+    5: ((MOUSE_EVENT_XDOWN, 0, 0, 2, 0), (MOUSE_EVENT_XUP, 0, 0, 2, 0))
+}
+
 click_actions = {
     1: 'Left click',
     2: 'Right click',
     3: 'Middle click',
+    4: 'X1',
+    5: 'X2',
 }
 
 actions_click = {v: k for k, v in click_actions.items()}
 
 
 def click(button=0, delay=0.001):
-    ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][0], 0, 0, 0, 0)  # down
+    ctypes.windll.user32.mouse_event(*MOUSE_EVENTS[button][0])  # down
     skip_time(delay)
-    ctypes.windll.user32.mouse_event(MOUSE_BUTTONS[button][1], 0, 0, 0, 0)  # up
+    ctypes.windll.user32.mouse_event(*MOUSE_EVENTS[button][1])  # up
 
 
 def calculate_theoretical_cps(delay, interval):
@@ -473,11 +488,17 @@ class App:
     def calculate_theoretical_cps(self):
         self.update_values()
         cps_result = calculate_theoretical_cps(delay=self.delay, interval=self.interval)
-        print(f'Theoretical clicks per second: {cps_result:.2f} with:\n\t{self.delay=}\n\t{self.interval=}\n')
 
-        message = f'Theoretical clicks per second: {cps_result:.2f}'
-        messagebox.showinfo('CPS Calculation Result', message)
+        if isinstance(cps_result, int|float):
+            print(f'Theoretical clicks per second: {cps_result:.2f} with:\n\t{self.delay=}\n\t{self.interval=}\n')
 
+            message = f'Theoretical clicks per second: {cps_result:.2f}'
+            messagebox.showinfo('CPS Calculation Result', message)
+        else:
+            print(f'Theoretical clicks per second: {cps_result} with:\n\t{self.delay=}\n\t{self.interval=}\n')
+
+            message = f'Theoretical clicks per second: {cps_result}'
+            messagebox.showinfo('CPS Calculation Result', message)
 
 if __name__ == '__main__':
     app = App()
