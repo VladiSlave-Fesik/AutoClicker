@@ -9,7 +9,6 @@ from tkinter import ttk, filedialog, messagebox
 
 from keyboard import add_hotkey, remove_hotkey
 
-
 MOUSE_EVENT_NOTHING = 0
 MOUSE_EVENT_LEFTDOWN = 0x0002
 MOUSE_EVENT_LEFTUP = 0x0004
@@ -21,6 +20,8 @@ MOUSE_EVENT_MIDDLEUP = 0x0040
 MOUSE_EVENT_XDOWN = 0x0080
 MOUSE_EVENT_XUP = 0x0100
 
+MOUSE_EVENTF_WHEEL = 0x0800
+WHEEL_DELTA = 120
 
 MOUSE_BUTTONS = {
     0: (MOUSE_EVENT_NOTHING, MOUSE_EVENT_NOTHING),
@@ -53,6 +54,27 @@ def click(button=0, delay=0.001):
     ctypes.windll.user32.mouse_event(*MOUSE_EVENTS[button][0])  # down
     skip_time(delay)
     ctypes.windll.user32.mouse_event(*MOUSE_EVENTS[button][1])  # up
+
+
+class MouseInput(ctypes.Structure):
+    _fields_ = [("dx", ctypes.c_long),
+                ("dy", ctypes.c_long),
+                ("mouseData", ctypes.c_ulong),
+                ("dwFlags", ctypes.c_ulong),
+                ("time", ctypes.c_ulong),
+                ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong))]
+
+
+class Input(ctypes.Structure):
+    class _INPUT(ctypes.Union):
+        _fields_ = [("mi", MouseInput)]
+
+    _fields_ = [("type", ctypes.c_ulong),
+                ("value", _INPUT)]
+
+
+def scroll(amount):
+    ctypes.windll.user32.mouse_event(MOUSE_EVENTF_WHEEL, 0, 0, amount * WHEEL_DELTA, 0)
 
 
 def calculate_theoretical_cps(delay, interval):
@@ -489,7 +511,7 @@ class App:
         self.update_values()
         cps_result = calculate_theoretical_cps(delay=self.delay, interval=self.interval)
 
-        if isinstance(cps_result, int|float):
+        if isinstance(cps_result, int | float):
             print(f'Theoretical clicks per second: {cps_result:.2f} with:\n\t{self.delay=}\n\t{self.interval=}\n')
 
             message = f'Theoretical clicks per second: {cps_result:.2f}'
@@ -499,6 +521,7 @@ class App:
 
             message = f'Theoretical clicks per second: {cps_result}'
             messagebox.showinfo('CPS Calculation Result', message)
+
 
 if __name__ == '__main__':
     app = App()
