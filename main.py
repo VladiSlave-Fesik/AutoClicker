@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 from keyboard import add_hotkey, remove_hotkey
+from pynput.mouse import Listener
 
 MOUSE_EVENT_NOTHING = 0
 MOUSE_EVENT_LEFTDOWN = 0x0002
@@ -50,6 +51,14 @@ click_actions = {
 actions_click = {v: k for k, v in click_actions.items()}
 
 
+def press(button=0):
+    ctypes.windll.user32.mouse_event(*MOUSE_EVENTS[button][0])  # down
+
+
+def release(button=0):
+    ctypes.windll.user32.mouse_event(*MOUSE_EVENTS[button][1])  # up
+
+
 def click(button=0, delay=0.001):
     ctypes.windll.user32.mouse_event(*MOUSE_EVENTS[button][0])  # down
     skip_time(delay)
@@ -75,6 +84,31 @@ class Input(ctypes.Structure):
 
 def scroll(amount):
     ctypes.windll.user32.mouse_event(MOUSE_EVENTF_WHEEL, 0, 0, amount * WHEEL_DELTA, 0)
+
+
+def move_to(end_x, end_y, duration=0):
+    start_x, start_y = ctypes.wintypes.POINT(), ctypes.wintypes.POINT()
+    ctypes.windll.user32.GetCursorPos(ctypes.byref(start_x))
+    start_x, start_y = start_x.x, start_x.y
+
+    steps = 100
+    interval = duration / steps
+
+    dx = (end_x - start_x) / steps
+    dy = (end_y - start_y) / steps
+
+    x = start_x
+    y = start_y
+
+    for _ in range(steps):
+        x += dx
+        y += dy
+
+        ctypes.windll.user32.SetCursorPos(int(x), int(y))
+
+        time.sleep(interval)
+
+    ctypes.windll.user32.SetCursorPos(end_x, end_y)
 
 
 def calculate_theoretical_cps(delay, interval):
@@ -256,13 +290,16 @@ class App:
         self.window.geometry(f'{self.x_size}x{self.y_size}')
         self.window.title('AutoClicker')
 
-        # flag
+        # flags
         self.is_waiting_for_key = False
+        self.stop_playing = False
+        self.stop_record = False
 
         # folders
         self.folder_data = 'data'
         self.folder_configs = path_join(self.folder_data, 'configs')
         self.folder_images = path_join(self.folder_data, 'images')
+        self.folder_records = path_join(self.folder_data, 'records')
 
         # load images
         self.icon_name = path_join(self.folder_images, 'autoclicker.ico')
@@ -287,7 +324,12 @@ class App:
         self.hotkey_button = tk.Button(command=self.get_key, image=self.icon_key_button_img, bd=0, highlightthickness=0)
         self.hotkey_button.grid(row=0, column=0)
 
+        # add hotkeys
         self.hotkey = add_hotkey(self.hotkey_key, self.toggle_autoclicker)
+        add_hotkey('ctrl+e', self.change_stop_playing)
+        add_hotkey('ctrl+q', self.stop_listener)
+        add_hotkey('ctrl+t', self.change_stop_recording)
+
         self.current_hotkey_label = tk.Label(self.window, text=f'Current Hotkey: {self.hotkey_key}')
         self.current_hotkey_label.grid(row=0, column=1)
 
@@ -322,8 +364,16 @@ class App:
         self.calculate_menu.add_command(label='Calculate practical cps',
                                         command=self.calculate_practical_cps)
 
+        self.recording_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.recording_menu.add_command(label='Play record',
+                                        command=self.run_playing)
+
+        self.recording_menu.add_command(label='Start recording',
+                                        command=self.start_listener)
+
         self.menu_bar.add_cascade(label='Configuration', menu=self.config_menu)
         self.menu_bar.add_cascade(label='Calculations', menu=self.calculate_menu)
+        self.menu_bar.add_cascade(label='Recording', menu=self.recording_menu)
 
         self.window.config(menu=self.menu_bar)
 
@@ -521,6 +571,66 @@ class App:
 
             message = f'Theoretical clicks per second: {cps_result}'
             messagebox.showinfo('CPS Calculation Result', message)
+
+    def exec_record(self, file_name='record.txt'):
+        with open(file_name, 'r') as file:
+            for last_num, line in enumerate(file.readlines()):
+                if self.stop_playing:
+                    time.sleep(0.1)
+                else:
+                    exec(line)
+
+    def run_playing(self):
+        self.run_record_thread = threading.Thread(target=self.exec_record)
+        self.run_record_thread.start()
+
+    def start_listener(self, file_name='record.txt'):
+        print('The recording has begun')
+        self.actions = []
+        self.last_action = time.time()
+        self.listener = Listener(on_click=self.on_click, on_scroll=self.on_scroll, on_move=self.on_move)
+        self.listener.start()
+        self.listener.join()
+
+        with open(file_name, 'w') as file:
+            file.write('\n'.join(self.actions))
+
+    def stop_listener(self):
+        self.listener.stop()
+        print('Recording stopped')
+
+    def on_click(self, x: int, y: int, button, pressed: bool):
+        if not self.stop_record:
+            action_time = time.time() - self.last_action
+            self.last_action = time.time()
+            button = str(button)
+            button = 1 if button.endswith('left') else 2 if button.endswith('right') else 3 if button.endswith(
+                'middle') else 4 if button.endswith('x1') else 5 if button.endswith('x2') else button
+            if pressed:
+                press_or_release = 'press'
+            else:
+                press_or_release = 'release'
+            action = f'skip_time({action_time})\n{press_or_release}({button=})'
+            self.actions.append(action)
+
+    def on_move(self, x, y):
+        if not self.stop_record:
+            action = f'skip_time({time.time() - self.last_action})\nmove_to({x}, {y})'
+            self.last_action = time.time()
+            # print(action)
+            self.actions.append(action)
+
+    def on_scroll(self, *args):
+        if not self.stop_record:
+            action = f'skip_time({time.time() - self.last_action})\nscroll({args[-1]})'
+            self.last_action = time.time()
+            self.actions.append(action)
+
+    def change_stop_playing(self):
+        self.stop_playing = not self.stop_playing
+
+    def change_stop_recording(self):
+        self.stop_record = not self.stop_record
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@ from pynput.mouse import Listener
 import sys
 import ctypes
 import random
+import threading
 from ctypes import wintypes
 import re
 
@@ -32,45 +33,39 @@ MOUSE_EVENTS = {
 
 
 def on_click(x: int, y: int, button, pressed: bool):
-    global last_action
-    action_time = time.time() - last_action
-    last_action = time.time()
-    button = str(button)
-    button = 1 if button.endswith('left') else 2 if button.endswith('right') else 3 if button.endswith(
-        'middle') else 4 if button.endswith('x1') else 5 if button.endswith('x2') else button
-    if pressed:
-        press_or_release = 'press'
-    else:
-        press_or_release = 'release'
-    action = f'skip_time({action_time})\n{press_or_release}({button=})'
-    print(action)
-    actions.append(action)
+    global last_action, stop_record
+    if not stop_record:
+        action_time = time.time() - last_action
+        last_action = time.time()
+        button = str(button)
+        button = 1 if button.endswith('left') else 2 if button.endswith('right') else 3 if button.endswith(
+            'middle') else 4 if button.endswith('x1') else 5 if button.endswith('x2') else button
+        if pressed:
+            press_or_release = 'press'
+        else:
+            press_or_release = 'release'
+        action = f'skip_time({action_time})\n{press_or_release}({button=})'
+        print(action)
+        actions.append(action)
 
 
 def on_move(x, y):
-    global last_action
-    action = f'skip_time({time.time() - last_action})\nmove_to({x}, {y})'
-    print(action)
-    last_action = time.time()
-    # print(action)
-    actions.append(action)
+    global last_action, stop_record
+    if not stop_record:
+        action = f'skip_time({time.time() - last_action})\nmove_to({x}, {y})'
+        print(action)
+        last_action = time.time()
+        # print(action)
+        actions.append(action)
 
 
 def on_scroll(*args):
-    global last_action
-    action = f'skip_time({time.time() - last_action})\nscroll({args[-1]})'
-    last_action = time.time()
-    print(action)
-    actions.append(action)
-
-
-def start_listener():
-    with Listener(on_click=on_click, on_move=on_move) as listener:
-        listener.join()
-
-
-def stop_listener():
-    listener.stop()
+    global last_action, stop_record
+    if not stop_record:
+        action = f'skip_time({time.time() - last_action})\nscroll({args[-1]})'
+        last_action = time.time()
+        print(action)
+        actions.append(action)
 
 
 def press(button=0, delay=0.001):
@@ -138,42 +133,54 @@ def skip_time(seconds):
         pass
 
 
-def run_record():
-    with open('record.txt', 'r') as file:
-        for line in file.readlines():
-            exec(line)
+def start_listener():
+    global last_action, actions, listener
 
-
-def compress_record(file_name):
-    with open(file_name+'.txt', 'r') as original_file:
-        text = original_file.readlines()
-
-    with open(file_name + '_compress.txt', 'w') as new_file:
-        for line in text:
-            line = re.sub(r"press\(button=(\d+)\)", r"p(\1)", line)
-            line = re.sub(r"skip_time\(([\d.]+)\)", lambda m: f"s({round(float(m.group(1)), 5)})", line)
-            line = re.sub(r"release\(button=(\d+)\)", r"r(\1)", line)
-            line = re.sub(r"move_to\(x=(\d+), y=(\d+)\)", r"m(\1, \2)", line)
-            new_file.write(line)
-
-
-mode = 3
-
-if mode == 1:
-    time.sleep(2)
-    run_record()
-elif mode == 2:
     actions = []
     last_action = time.time()
-    keyboard.add_hotkey('ctrl+q', stop_listener)
-
-    with Listener(on_click=on_click, on_scroll=on_scroll, on_move=on_move) as listener:
-        listener.join()
+    listener = Listener(on_click=on_click, on_scroll=on_scroll, on_move=on_move)
+    listener.start()
+    listener.join()
 
     with open('record.txt', 'w') as file:
         file.write('\n'.join(actions))
 
-elif mode == 3:
-    compress_record('record')
+
+def stop_listener():
+    global listener
+    listener.stop()
+
+
+def run_record():
+    with open('record.txt', 'r') as file:
+        for last_num, line in enumerate(file.readlines()):
+            if stop_playing:
+                time.sleep(0.1)
+            else:
+                exec(line)
+
+
+def change_stop_playing():
+    global stop_playing
+    stop_playing = not stop_playing
+
+
+def change_stop_recording():
+    global stop_record
+    stop_record = not stop_record
+
+
+mode = 1
+stop_playing = False
+stop_record = False
+
+if mode == 1:
+    time.sleep(2)
+    keyboard.add_hotkey('ctrl+e', change_stop_playing)
+    run_record()
+elif mode == 2:
+    keyboard.add_hotkey('ctrl+q', stop_listener)
+    keyboard.add_hotkey('ctrl+t', change_stop_recording)
+    start_listener()
 
 print('\nEnd')
