@@ -142,7 +142,7 @@ def start_listener():
     listener.start()
     listener.join()
 
-    with open('record.txt', 'w') as file:
+    with open('data/records/record.txt', 'w') as file:
         file.write('\n'.join(actions))
 
 
@@ -152,7 +152,7 @@ def stop_listener():
 
 
 def run_record():
-    with open('record.txt', 'r') as file:
+    with open('data/records/record.txt', 'r') as file:
         for last_num, line in enumerate(file.readlines()):
             if stop_playing:
                 time.sleep(0.1)

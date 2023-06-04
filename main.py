@@ -153,14 +153,12 @@ class CPSCalculationThread(threading.Thread):
         start_time = time.perf_counter()
 
         while time.perf_counter() - start_time < self.calculation_duration:
-            # Выполнение расчетов CPS
             click(0, self.delay)
             skip_time(self.interval)
             total_clicks += 1
 
         clicks_per_second = total_clicks / self.calculation_duration
 
-        # Вызов обратного вызова с результатом расчетов
         self.callback(clicks_per_second)
 
 
@@ -272,6 +270,48 @@ class TimeInput(tk.Frame):
         return milliseconds
 
 
+class HotkeyHintApp:
+    def __init__(self, start_listener_hotkey_key, end_listener_hotkey_key, stop_listener_hotkey_key,
+                 stop_playing_hotkey_key, end_playing_hotkey_key):
+        self.start_listener_hotkey_key = start_listener_hotkey_key
+        self.end_listener_hotkey_key = end_listener_hotkey_key
+        self.stop_listener_hotkey_key = stop_listener_hotkey_key
+        self.stop_playing_hotkey_key = stop_playing_hotkey_key
+        self.end_playing_hotkey_key = end_playing_hotkey_key
+
+        self.topmost_mode = False
+
+        self.root = tk.Tk()
+        self.root.title("Hotkey Hint")
+        self.root.geometry("300x170")
+        self.root.resizable(False, False)
+
+        self.label = tk.Label(self.root, text="", font=("Arial", 12))
+        self.label.pack(pady=20)
+
+        self.toggle_button = tk.Button(self.root, text="Toggle Topmost", command=self.toggle_topmost)
+        self.toggle_button.pack()
+
+        self.update_label()
+
+    def update_label(self):
+        hotkeys = [
+            "Start Listener: " + self.start_listener_hotkey_key,
+            "End Listener: " + self.end_listener_hotkey_key,
+            "Stop Listener: " + self.stop_listener_hotkey_key,
+            "Stop Playing: " + self.stop_playing_hotkey_key,
+            "End Playing: " + self.end_playing_hotkey_key
+        ]
+        self.label.config(text="\n".join(hotkeys))
+
+    def toggle_topmost(self):
+        self.topmost_mode = not self.topmost_mode
+        self.root.attributes("-topmost", self.topmost_mode)
+
+    def run(self):
+        self.root.mainloop()
+
+
 class App:
     standard_autoclicker_settings = {
         'hotkey_key': 'F6',
@@ -285,13 +325,14 @@ class App:
         self.window = tk.Tk()
         self.window.title()
 
-        self.x_size = 250
-        self.y_size = 150
+        self.x_size = 300
+        self.y_size = 160
         self.window.geometry(f'{self.x_size}x{self.y_size}')
         self.window.title('AutoClicker')
 
         # flags
         self.is_waiting_for_key = False
+        self.topmost_mode = False
         self.stop_playing = False
         self.stop_record = False
 
@@ -311,6 +352,9 @@ class App:
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
         self.window.resizable(width=False, height=False)
         self.window.bind("<Button-1>", self.handle_click)
+        # self.window.bind("<Configure>", self.update_window_size_label)  # for logging window size
+
+        self.hint_app = None
 
         # getting config
         self.standard_config_name = path_join(self.folder_configs, 'config.ini')
@@ -323,15 +367,29 @@ class App:
 
         self.hotkey_button = tk.Button(command=self.get_key, image=self.icon_key_button_img, bd=0, highlightthickness=0)
         self.hotkey_button.grid(row=0, column=0)
+        self.current_hotkey_label = tk.Label(self.window, text=f'Current Hotkey: {self.hotkey_key}', font=10)
+        self.current_hotkey_label.grid(row=0, column=1)
 
         # add hotkeys
         self.hotkey = add_hotkey(self.hotkey_key, self.toggle_autoclicker)
-        add_hotkey('ctrl+e', self.change_stop_playing)
-        add_hotkey('ctrl+q', self.stop_listener)
-        add_hotkey('ctrl+t', self.change_stop_recording)
 
-        self.current_hotkey_label = tk.Label(self.window, text=f'Current Hotkey: {self.hotkey_key}')
-        self.current_hotkey_label.grid(row=0, column=1)
+        self.start_listener_hotkey_key = 'ctrl+q'
+        self.end_listener_hotkey_key = 'ctrl+e'
+        self.stop_listener_hotkey_key = 'ctrl+r'
+
+        self.stop_playing_hotkey_key = 'ctrl+t'
+        self.end_playing_hotkey_key = 'ctrl+y'
+
+        add_hotkey(self.start_listener_hotkey_key, self.start_listener)
+        add_hotkey(self.end_listener_hotkey_key, self.stop_listener)
+        add_hotkey(self.stop_listener_hotkey_key, self.change_stop_recording)
+
+        add_hotkey(self.stop_playing_hotkey_key, self.change_stop_playing)
+        add_hotkey(self.end_playing_hotkey_key, self.end_playing)
+
+        self.edit_button = tk.Button(self.window, text='Edit', bd=1, highlightthickness=0,
+                                     command=self.edit_hotkey_label)
+        self.edit_button.grid(row=0, column=2)
 
         self.delay_label = tk.Label(self.window, text='Delay:')
         self.delay_label.grid(row=1, column=0)
@@ -350,6 +408,12 @@ class App:
         self.click_selection.set(click_actions[self.button])
         self.click_selection.grid(row=3, column=1)
 
+        self.topmost_button = tk.Button(text='Topmost mode', command=self.toggle_topmost)
+        self.topmost_button.grid(row=4, column=0)
+
+        self.topmost_label = tk.Label(text='State: Off', font=5)
+        self.topmost_label.grid(row=4, column=1)
+
         # set menu bar
         self.menu_bar = tk.Menu()
 
@@ -365,15 +429,19 @@ class App:
                                         command=self.calculate_practical_cps)
 
         self.recording_menu = tk.Menu(self.menu_bar, tearoff=0)
+
         self.recording_menu.add_command(label='Play record',
                                         command=self.run_playing)
 
-        self.recording_menu.add_command(label='Start recording',
-                                        command=self.start_listener)
+        self.recording_menu.add_command(label='Open hints',
+                                        command=self.show_hotkey_hint)
+        #
+        # self.recording_menu.add_command(label='Start recording',
+        #                                 command=self.start_listener)
 
         self.menu_bar.add_cascade(label='Configuration', menu=self.config_menu)
         self.menu_bar.add_cascade(label='Calculations', menu=self.calculate_menu)
-        self.menu_bar.add_cascade(label='Recording', menu=self.recording_menu)
+        self.menu_bar.add_cascade(label='Records', menu=self.recording_menu)
 
         self.window.config(menu=self.menu_bar)
 
@@ -477,6 +545,10 @@ class App:
 
     def on_closing(self):
         self.window.destroy()
+        try:
+            self.hint_app.root.destroy()
+        except:
+            ...
 
     def get_time(self):
         time_ = self.time_input.get_time()
@@ -572,32 +644,41 @@ class App:
             message = f'Theoretical clicks per second: {cps_result}'
             messagebox.showinfo('CPS Calculation Result', message)
 
-    def exec_record(self, file_name='record.txt'):
+    def exec_record(self, file_name):
+        n = 1
+        print(f'Run record from {file_name} in {n} seconds')
+        time.sleep(n)
         with open(file_name, 'r') as file:
             for last_num, line in enumerate(file.readlines()):
                 if self.stop_playing:
                     time.sleep(0.1)
                 else:
                     exec(line)
+        print('The recording has been played')
 
     def run_playing(self):
-        self.run_record_thread = threading.Thread(target=self.exec_record)
-        self.run_record_thread.start()
+        file_path = filedialog.askopenfilenames(initialdir=self.folder_records)
+        if file_path:
+            self.run_record_thread = threading.Thread(target=self.exec_record, args=file_path)
+            self.run_record_thread.start()
 
-    def start_listener(self, file_name='record.txt'):
+    def start_listener(self, file_name=None):
+        if not file_name:
+            file_name = path_join(self.folder_records, 'record.txt')
         print('The recording has begun')
         self.actions = []
         self.last_action = time.time()
         self.listener = Listener(on_click=self.on_click, on_scroll=self.on_scroll, on_move=self.on_move)
         self.listener.start()
-        self.listener.join()
 
+    def stop_listener(self, file_name=None):
+        if not file_name:
+            file_name = path_join(self.folder_records, 'record.txt')
+        self.listener.stop()
+        print('Recording end')
         with open(file_name, 'w') as file:
             file.write('\n'.join(self.actions))
-
-    def stop_listener(self):
-        self.listener.stop()
-        print('Recording stopped')
+        print(f'Actions {len(self.actions)} written')
 
     def on_click(self, x: int, y: int, button, pressed: bool):
         if not self.stop_record:
@@ -631,6 +712,55 @@ class App:
 
     def change_stop_recording(self):
         self.stop_record = not self.stop_record
+
+    def end_playing(self):
+        try:
+            self.run_record_thread.stop()
+        except:
+            ...
+
+    def show_hotkey_hint(self):
+        self.hint_app = HotkeyHintApp(self.start_listener_hotkey_key, self.end_listener_hotkey_key,
+                                      self.stop_listener_hotkey_key,
+                                      self.stop_playing_hotkey_key,
+                                      self.end_playing_hotkey_key)
+
+        self.hint_app.run()
+
+    def edit_hotkey_label(self):
+        if not self.is_waiting_for_key:
+            self.current_hotkey_label.grid_remove()
+            self.hotkey_entry = tk.Entry(self.window, width=15)
+            self.hotkey_entry.insert(0, self.hotkey_key)
+            self.hotkey_entry.grid(row=0, column=1)
+            self.edit_button.config(text="Save", command=self.save_hotkey_label)
+            self.is_waiting_for_key = True
+
+    def save_hotkey_label(self):
+        new_hotkey_key = self.hotkey_entry.get()
+        remove_hotkey(self.hotkey_key)
+        self.hotkey_key = new_hotkey_key
+        add_hotkey(self.hotkey_key, self.toggle_autoclicker)
+        self.current_hotkey_label.config(text=f'Current Hotkey: {self.hotkey_key}')
+        self.hotkey_entry.grid_remove()
+        self.current_hotkey_label.grid(row=0, column=1)
+        self.edit_button.config(text="Edit", command=self.edit_hotkey_label)
+        self.is_waiting_for_key = False
+
+    def update_window_size_label(self, event):
+        width = event.width
+        height = event.height
+        print(f'Window size: {width}x{height}')
+
+    def toggle_topmost(self):
+        self.topmost_mode = not self.topmost_mode
+        if self.topmost_mode:
+            _ = 'State: On'
+        else:
+            _ = 'State: Off'
+        self.topmost_label.config(text=_)
+        print(f'Topmost mode: {self.topmost_mode}')
+        self.window.attributes("-topmost", self.topmost_mode)
 
 
 if __name__ == '__main__':
